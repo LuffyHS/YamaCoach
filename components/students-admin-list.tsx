@@ -35,6 +35,7 @@ export function StudentsAdminList({ students, pendingUserIds, now }: { students:
         <span className="student-rank-pair"><ValorantRankBadge rank={profile.current_rank} size="sm" /><span>→</span><ValorantRankBadge rank={profile.target_rank} size="sm" /></span>
         <span className={`status ${status === "Ativo" ? "" : "pending"}`}>{status}</span>
         <small className="student-days">{remainingDays > 0 ? `${remainingDays} dias restantes` : "Sem assinatura ativa"}</small>
+        {status === "Ativo" && <button type="button" className="button secondary revoke-button" onClick={async (e) => { e.preventDefault(); e.stopPropagation(); if (!confirm("Revogar acesso deste aluno?")) return; await fetch("/api/revoke-access", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: `student_id=${profile.id}` }); window.location.reload(); }}>Revogar acesso</button>}
       </Link>;
     })}</div> : <div className="empty">{students.length ? "Nenhum aluno nesta categoria." : "Nenhum aluno cadastrado."}</div>}
   </>;

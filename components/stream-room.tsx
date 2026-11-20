@@ -30,7 +30,7 @@ export function StreamRoom({ sessionId, userId, userName, coach, publicRoom, par
   const processedMic = useRef<MediaStream | null>(null);
   const audioContext = useRef<AudioContext | null>(null);
   const audioGraphCleanup = useRef<(() => void) | null>(null);
-  const noiseGateEnabled = useRef(true);
+  const noiseGateEnabled = useRef(false);
   const screen = useRef<MediaStream | null>(null);
   const candidates = useRef<Record<string, RTCIceCandidateInit[]>>({});
   const meters = useRef<Record<string, () => void>>({});
@@ -38,7 +38,7 @@ export function StreamRoom({ sessionId, userId, userName, coach, publicRoom, par
   const [status, setStatus] = useState("Aguardando participante");
   const [started, setStarted] = useState(false);
   const [mic, setMic] = useState(false);
-  const [noiseSuppression, setNoiseSuppression] = useState(true);
+  const [noiseSuppression, setNoiseSuppression] = useState(false);
   const [noiseSupported, setNoiseSupported] = useState(false);
   const [camera, setCamera] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -77,14 +77,14 @@ export function StreamRoom({ sessionId, userId, userName, coach, publicRoom, par
       let local: MediaStream | null = null;
       const supported = navigator.mediaDevices.getSupportedConstraints?.().noiseSuppression ?? false;
       setNoiseSupported(true);
-      setNoiseSuppression(true);
+      setNoiseSuppression(false);
       const processedAudio: MediaTrackConstraints = { echoCancellation: true, autoGainControl: true, ...(supported ? { noiseSuppression: true } : {}) };
       try { local = await navigator.mediaDevices.getUserMedia({ audio: processedAudio, video: !publicRoom }); }
       catch { try { local = await navigator.mediaDevices.getUserMedia({ audio: processedAudio, video: false }); }
         catch { try { local = await navigator.mediaDevices.getUserMedia({ audio: true, video: false }); }
           catch { setError("Microfone e câmera indisponíveis. Você ainda pode receber o vídeo e compartilhar a tela."); } } }
       media.current = local;
-      noiseGateEnabled.current = true;
+      noiseGateEnabled.current = false;
       if (localVideo.current && local) localVideo.current.srcObject = local;
       const audio = local?.getAudioTracks() ?? [], video = local?.getVideoTracks() ?? [];
       setNoiseSupported(Boolean(audio.length));
