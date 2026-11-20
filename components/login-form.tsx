@@ -13,6 +13,7 @@ export function LoginForm({ initialSignup = false }: { initialSignup?: boolean }
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [email, setEmail] = useState("");
+  const [remember, setRemember] = useState(true);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -108,6 +109,7 @@ export function LoginForm({ initialSignup = false }: { initialSignup?: boolean }
         <input required id="auth-email" type="email" name="email" maxLength={254} autoComplete="email" className="field" placeholder="voce@email.com" value={email} onChange={(event) => setEmail(event.target.value)} />
         <label className="label" htmlFor="auth-password">Senha</label>
         <input required minLength={8} maxLength={128} id="auth-password" type="password" name="password" autoComplete={signup ? "new-password" : "current-password"} className="field" placeholder="Mínimo 8 caracteres" />
+        {!signup && <label className="desktop-remember"><input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> Manter conectado</label>}
         <button className="button primary" disabled={busy} style={{ width: "100%" }}>{busy ? "Aguarde…" : signup ? "Criar conta" : "Entrar"}</button>
         {error && <div className="recovery-error" role="alert">{error}</div>}
         {notice && <div className="recovery-success" role="status">{notice}</div>}

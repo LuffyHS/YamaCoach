@@ -46,6 +46,18 @@ function closeSplash() {
 }
 
 function createWindow(appUrl) {
+  // Persiste o modo desktop em todas as rotas via cookie e query.
+  let desktopUrl = appUrl;
+  try {
+    const parsed = new URL(appUrl);
+    if (parsed.searchParams.get("desktop") !== "1") {
+      parsed.searchParams.set("desktop", "1");
+      desktopUrl = parsed.toString();
+    }
+  } catch {
+    desktopUrl = appUrl;
+  }
+
   const window = new BrowserWindow({
     width: 1440,
     height: 920,
@@ -65,8 +77,25 @@ function createWindow(appUrl) {
   });
   mainWindow = window;
 
+  // User-Agent customizado para deteccao no servidor.
+  window.webContents.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 YamaCoachDesktop/1.0 Electron");
+
   let trustedOrigin;
-  try { trustedOrigin = new URL(appUrl).origin; } catch { trustedOrigin = "http://localhost:3000"; }
+  try { trustedOrigin = new URL(desktopUrl).origin; } catch { trustedOrigin = "http://localhost:3000"; }
+
+  // Persiste cookie yama_desktop=1 para todas as rotas.
+  try {
+    const session = window.webContents.session;
+    void session.cookies.set({
+      url: trustedOrigin,
+      name: "yama_desktop",
+      value: "1",
+      path: "/",
+      sameSite: "lax",
+      secure: trustedOrigin.startsWith("https:"),
+    });
+  } catch {}
+
   window.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url);
     return { action: "deny" };
@@ -88,7 +117,7 @@ function createWindow(appUrl) {
     }
   });
 
-  void window.loadURL(appUrl);
+  void window.loadURL(desktopUrl);
   return window;
 }
 

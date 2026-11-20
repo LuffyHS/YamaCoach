@@ -1,3 +1,4 @@
+/* eslint-disable */
 /* Gera os recursos visuais do instalador/launcher do Yama Coach sem dependencias.
    Uso: node desktop/build/generate-assets.js */
 "use strict";

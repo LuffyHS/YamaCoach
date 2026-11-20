@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useSyncExternalStore, useState } from "react";
 import { CalendarDays, Crosshair, Dumbbell, LayoutDashboard, LogOut, Menu, Radio, Settings, Users, Video, X } from "lucide-react";
 import type { Role } from "@/lib/types";
 import { ValorantRankBadge } from "@/components/valorant-rank-badge";
+import { isDesktopClient } from "@/lib/is-desktop";
 
 const workLinks = [
   { href: "/dashboard/vods", label: "VOD Review", icon: Video },
@@ -17,6 +18,11 @@ const workLinks = [
 export function DashboardNav({ role, name, rank, pendingVods = 0, pendingPayments = 0 }: { role: Role; name: string; rank?: string | null; pendingVods?: number; pendingPayments?: number }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const desktop = useSyncExternalStore(
+    () => () => {},
+    () => isDesktopClient(),
+    () => false
+  );
   const close = () => setOpen(false);
   const isActive = (href: string) => pathname === href || (href !== "/dashboard" && pathname.startsWith(`${href}/`));
 
@@ -24,7 +30,7 @@ export function DashboardNav({ role, name, rank, pendingVods = 0, pendingPayment
     <button className="mobile-menu" aria-label="Abrir menu" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? <X /> : <Menu />}</button>
     {open && <button className="nav-backdrop" aria-label="Fechar menu" onClick={close} />}
     <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
-      <Link href="/" className="brand side-brand" onClick={close}>
+      <Link href={desktop ? "/dashboard" : "/"} className="brand side-brand" onClick={close}>
         <span className="brand-mark"><Crosshair size={18} /></span>YAMA<span className="brand-muted">/{role === "coach" ? "COACH" : "PLAYER"}</span>
       </Link>
 
