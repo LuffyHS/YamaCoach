@@ -47,17 +47,16 @@ jobs:
           for ($i = 0; $i -lt $hash.Length; $i += 2) { $bytes[$i/2] = [Convert]::ToByte($hash.Substring($i, 2), 16) }
           $sha512 = [Convert]::ToBase64String($bytes)
           $releaseDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
-          $yml = @"
-version: $version
-files:
-  - url: YamaCoach-Setup.exe
-    sha512: $sha512
-    size: $size
-path: YamaCoach-Setup.exe
-sha512: $sha512
-releaseDate: '$releaseDate'
-"@
-          Set-Content -Path "desktop/release/latest.yml" -Value $yml -NoNewline
+          $lines = @()
+          $lines += "version: $version"
+          $lines += "files:"
+          $lines += "  - url: YamaCoach-Setup.exe"
+          $lines += "    sha512: $sha512"
+          $lines += "    size: $size"
+          $lines += "path: YamaCoach-Setup.exe"
+          $lines += "sha512: $sha512"
+          $lines += "releaseDate: '$releaseDate'"
+          $lines -join "`n" | Set-Content -Path "desktop/release/latest.yml" -NoNewline
           Write-Host "Generated latest.yml:"
           Get-Content "desktop/release/latest.yml"
       - name: Publish release
