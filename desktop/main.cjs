@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
-const { app, BrowserWindow, shell, dialog } = require("electron");
+const { app, BrowserWindow, shell, dialog, ipcMain } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 
@@ -40,6 +40,15 @@ function setupAutoUpdater() {
 }
 
 const packagedEnv = path.join(process.resourcesPath || "", "app.env");
+let configuredAppUrl = "";
+let mainWindow = null;
+let splashWindow = null;
+
+// IPC handlers for custom titlebar
+ipcMain.on("window:minimize", () => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.minimize(); });
+ipcMain.on("window:maximize", () => { if (mainWindow && !mainWindow.isDestroyed()) { if (mainWindow.isMaximized()) mainWindow.unmaximize(); else mainWindow.maximize(); } });
+ipcMain.on("window:close", () => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.close(); });
+ipcMain.handle("window:isMaximized", () => mainWindow && !mainWindow.isDestroyed() ? mainWindow.isMaximized() : false);
 if (app.isPackaged && fs.existsSync(packagedEnv)) {
   for (const line of fs.readFileSync(packagedEnv, "utf8").split(/\r?\n/)) {
     const match = line.match(/^\s*YAMA_APP_URL\s*=\s*(.*?)\s*$/);
@@ -94,8 +103,11 @@ function createWindow(appUrl) {
     minWidth: 960,
     minHeight: 680,
     show: false,
+    frame: false,
+    transparent: false,
     backgroundColor: BRAND_COLOR,
     title: "Yama Coach",
+    roundedCorners: true,
     icon: path.join(__dirname, "assets", "icon.ico"),
     autoHideMenuBar: true,
     webPreferences: {
@@ -112,7 +124,7 @@ function createWindow(appUrl) {
   window.webContents.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 YamaCoachDesktop/1.0 Electron");
 
   let trustedOrigin;
-  try { trustedOrigin = new URL(desktopUrl).origin; } catch { trustedOrigin = "http://localhost:3000"; }
+  try { trustedOrigin = new URL(desktopUrl).origin; } catch { trustedOrigin = "https://yamacoach.onrender.com"; }
 
   // Persiste cookie yama_desktop=1 para todas as rotas.
   try {

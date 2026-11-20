@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSyncExternalStore, useState } from "react";
-import { CalendarDays, Dumbbell, LayoutDashboard, LogOut, Menu, Radio, Settings, Users, Video, X } from "lucide-react";
+import { Brain, CalendarDays, Dumbbell, LayoutDashboard, LogOut, Menu, Radio, Settings, Users, Video, X } from "lucide-react";
 import type { Role } from "@/lib/types";
 import { ValorantRankBadge } from "@/components/valorant-rank-badge";
 import { YamaLogo } from "@/components/yama-logo";
@@ -14,6 +14,7 @@ const workLinks = [
   { href: "/dashboard/live", label: "Sala ao vivo", icon: Radio },
   { href: "/dashboard/calendar", label: "Calendário", icon: CalendarDays },
   { href: "/dashboard/setup", label: "Ficha técnica", icon: Settings },
+  { href: "/dashboard/diagnostico", label: "Diagnóstico IA", icon: Brain },
 ];
 
 export function DashboardNav({ role, name, rank, pendingVods = 0, pendingPayments = 0 }: { role: Role; name: string; rank?: string | null; pendingVods?: number; pendingPayments?: number }) {

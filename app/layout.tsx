@@ -9,6 +9,7 @@ import "./download.css";
 import "./experience.css";
 import "./coach-dashboard.css";
 import "./valorant-polish.css";
+import { DesktopTitlebar } from "@/components/desktop-titlebar";
 import { ServiceWorkerCleanup } from "@/components/pwa-register";
 
 export const metadata: Metadata = {
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="pt-BR" className="h-full antialiased">
-      <body className="min-h-full flex flex-col"><ServiceWorkerCleanup />{children}</body>
+      <body className="min-h-full flex flex-col"><ServiceWorkerCleanup /><DesktopTitlebar />{children}</body>
     </html>
   );
 }

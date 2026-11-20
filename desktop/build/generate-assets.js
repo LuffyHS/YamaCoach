@@ -214,12 +214,19 @@ function makeHeader() {
   }
   // borda inferior em esmeralda
   fillRect(c, 0, h - 2, w - 1, h - 1, C.emerald, 140);
-  // crosshair logo à esquerda
-  drawCrosshair(c, 26, h / 2, 14, 3.5, C.emerald, 255, 2);
-  // texto da marca
-  drawText(c, "YAMA", 50, 16, 2, C.text, 255);
-  fillRect(c, 122, 8, 123, h - 8, C.line, 255);
-  drawText(c, "COACH", 126, 16, 2, C.emeraldLight, 255);
+  // YC logo centralizado (escala 0.7)
+  const scale = 0.7;
+  const offX = 55;
+  const offY = 8;
+  // Y - esmeralda
+  poly(c, [[4+offX,6+offY],[14+offX,6+offY],[26+offX,28+offY],[18+offX,28+offY]], C.emerald, 255, scale);
+  poly(c, [[40+offX,6+offY],[50+offX,6+offY],[32+offX,28+offY],[24+offX,28+offY]], C.emerald, 255, scale);
+  poly(c, [[22+offX,26+offY],[32+offX,26+offY],[32+offX,52+offY],[22+offX,52+offY]], C.emerald, 255, scale);
+  // C - branco
+  poly(c, [[44+offX,8+offY],[56+offX,8+offY],[60+offX,12+offY],[60+offX,52+offY],[56+offX,56+offY],[44+offX,56+offY],[44+offX,48+offY],[52+offX,48+offY],[54+offX,46+offY],[54+offX,18+offY],[52+offX,16+offY],[44+offX,16+offY]], [248,250,252], 255, scale);
+  // Radiant star
+  poly(c, [[32+offX,0+offY],[34.5+offX,4.5+offY],[39+offX,7+offY],[34.5+offX,9.5+offY],[32+offX,14+offY],[29.5+offX,9.5+offY],[25+offX,7+offY],[29.5+offX,4.5+offY]], C.amber, 255, scale);
+  fillCircle(c, Math.round((32+offX)*scale), Math.round((7+offY)*scale), Math.max(1, Math.round(1.6*scale)), [248,250,252], 255);
   return c;
 }
 
