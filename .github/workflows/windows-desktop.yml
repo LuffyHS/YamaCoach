@@ -34,7 +34,7 @@ jobs:
           if ($target.Scheme -ne "https") { throw "YAMA_APP_URL must use HTTPS." }
           Set-Content -Path desktop/.env.production -Value "YAMA_APP_URL=$env:YAMA_APP_URL" -NoNewline
       - name: Build Windows installer
-        run: npm run build:win
+        run: npm run build:win -- --publish never
         working-directory: desktop
       - name: Generate latest.yml for auto-updater
         shell: pwsh
