@@ -39,6 +39,19 @@ export default async function DashboardPage() {
     currentRank ||= rankData?.rank ?? null;
     routines = (routineData ?? []) as TrainingRoutine[];
     vods = (vodData ?? []) as VodReview[];
+    // Auto-sync rank via HenrikDev (best-effort, não bloqueia a página)
+    if (user.riot_id) {
+      try {
+        const { fetchHenrikRank } = await import("@/lib/henrikdev");
+        const result = await fetchHenrikRank(user.riot_id);
+        if (result.current_rank_pt && result.current_rank_pt !== user.current_rank) {
+          await supabase.from("profiles").update({ current_rank: result.current_rank_pt }).eq("id", user.id);
+          await supabase.from("rank_history").insert({ student_id: user.id, rank: result.current_rank_pt });
+          currentRank = result.current_rank_pt;
+          user.current_rank = result.current_rank_pt;
+        }
+      } catch { /* ignore */ }
+    }
   }
 
   if (loadFailed) return <main className="content">

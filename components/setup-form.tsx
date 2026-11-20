@@ -37,6 +37,8 @@ export function SetupForm({ initial, editable, coach, studentId, rank, trackerUr
   const [currentRank, setCurrentRank] = useState(rank.current);
   const [initialRank, setInitialRank] = useState(rank.initial);
   const [targetRank, setTargetRank] = useState(rank.target);
+  const [syncing, setSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState("");
   const [msg, setMsg] = useState("");
   const [copied, setCopied] = useState(false);
   const edpi = (Number(v.dpi) || 0) * (Number(v.sensitivity) || 0);
@@ -58,6 +60,26 @@ export function SetupForm({ initial, editable, coach, studentId, rank, trackerUr
 
   function field(key: keyof PlayerSetup, title: string, icon: React.ReactNode, type = "text") {
     return <label className="label" key={key}><span className="setup-field-label">{icon}{title}</span><input disabled={!editable} className="field" value={String(v[key] ?? "")} type={type} onChange={e => setV({ ...v, [key]: type === "number" ? (e.target.value ? Number(e.target.value) : null) : e.target.value })} /></label>;
+  }
+
+  async function syncRank() {
+    setSyncing(true);
+    setSyncStatus("");
+    try {
+      const res = await fetch(`/api/valorant-rank?student_id=${studentId}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Falha ao sincronizar.");
+      if (data.current_rank_pt) {
+        setCurrentRank(data.current_rank_pt);
+        setSyncStatus(`Elo atualizado: ${data.current_tier} → ${data.current_rank_pt}${data.updated ? " (novo)" : ""}`);
+      } else {
+        setSyncStatus(data.error || "Elo não encontrado.");
+      }
+    } catch (e) {
+      setSyncStatus(e instanceof Error ? e.message : "Erro ao sincronizar.");
+    } finally {
+      setSyncing(false);
+    }
   }
 
   async function copyCrosshair() {
@@ -87,6 +109,7 @@ export function SetupForm({ initial, editable, coach, studentId, rank, trackerUr
     </section>
     <section className="card setup-section"><div className="setup-section-heading"><div><span className="setup-index">04 / RANKED</span><h2>Elo e objetivo</h2></div><span className="setup-section-note">{coach ? "Defina o ponto de partida, elo atual e objetivo." : "Atualize quando sua patente mudar no jogo."}</span></div>
       <div className="grid checkout-grid rank-edit-grid"><label className="label">Elo inicial com o coach{coach ? <><select className="field" value={initialRank} onChange={e => setInitialRank(e.target.value)}><option value="">Definir ponto inicial</option>{RANK_TIERS.map(tier => <option key={tier} value={tier}>{tier}</option>)}</select><ValorantRankBadge rank={initialRank} size="sm" /></> : <div className="setup-rank-readonly"><ValorantRankBadge rank={rank.initial} size="md" /></div>}</label><label className="label">Elo atual{coach ? <><select className="field" value={currentRank} onChange={e => setCurrentRank(e.target.value)}><option value="">Aguardando atualização do aluno</option>{RANK_TIERS.map(tier => <option key={tier} value={tier}>{tier}</option>)}</select><ValorantRankBadge rank={currentRank} size="sm" /></> : <><select className="field" value={currentRank} onChange={e => setCurrentRank(e.target.value)}><option value="">Selecione seu elo atual</option>{RANK_TIERS.map(tier => <option key={tier} value={tier}>{tier}</option>)}</select><ValorantRankBadge rank={currentRank} size="sm" /></>}</label><label className="label">Meta de patente{coach ? <><select name="target_rank" className="field" value={targetRank} onChange={e => setTargetRank(e.target.value)}><option value="">Definir objetivo</option>{RANK_TIERS.map(tier => <option key={tier} value={tier}>{tier}</option>)}</select><ValorantRankBadge rank={targetRank} size="sm" /></> : <div className="setup-rank-readonly"><ValorantRankBadge rank={rank.target} size="md" /></div>}</label></div>
+      {coach && <div className="setup-sync-row"><button type="button" className="button secondary" onClick={() => void syncRank()} disabled={syncing}>{syncing ? "Sincronizando…" : "Sincronizar elo (HenrikDev)"}</button><span className="setup-sync-status" role="status">{syncStatus}</span></div>}
       {coach && <>
       <label className="label">Erros recorrentes / pontos de atenção<textarea name="recurring_errors" defaultValue={rank.errors} className="field" rows={3} placeholder="Pontos para revisar nas próximas sessões…" /></label>
       </>}

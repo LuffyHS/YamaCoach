@@ -15,8 +15,31 @@ export function VodWorkspace({ role, items, students }: { role: Role; items: Vod
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<string>(AGENTS[0]);
+  const [aiReport, setAiReport] = useState("");
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiStats, setAiStats] = useState("");
   const item = items.find((entry) => entry.id === selected);
 
+  async function generateAiReport() {
+    if (!item) return;
+    setAiBusy(true);
+    setAiReport("");
+    try {
+      const stats = aiStats ? JSON.parse(aiStats) : {};
+      const res = await fetch("/api/ai-report", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ stats, map: item.map, agent: item.agent, student_name: students.find(s => s.id === item.student_id)?.full_name || "Aluno" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Falha ao gerar relatório.");
+      setAiReport(data.report);
+    } catch (e) {
+      setAiReport(e instanceof Error ? e.message : "Erro ao gerar relatório.");
+    } finally {
+      setAiBusy(false);
+    }
+  }
   async function send(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
@@ -70,6 +93,12 @@ export function VodWorkspace({ role, items, students }: { role: Role; items: Vod
             <button className="button primary" disabled={busy}>{busy ? "Salvando…" : "Salvar revisão"}</button>
           </form>}
           {item.coach_notes && <div className="notice">{item.coach_notes}{item.recurring_errors && <><br /><b>Foco:</b> {item.recurring_errors}</>}</div>}
+          {role === "coach" && <div className="ai-report-section">
+            <h4 className="card-title">Relatório IA da partida</h4>
+            <label className="label">Stats (JSON, ex: {`{"kills":20,"deaths":15,"assists":8,"acs":220,"hs":35}`})<textarea className="field" rows={2} value={aiStats} onChange={e => setAiStats(e.target.value)} placeholder='{"kills":20,"deaths":15,"assists":8,"acs":220}' /></label>
+            <button type="button" className="button secondary" onClick={() => void generateAiReport()} disabled={aiBusy}>{aiBusy ? "Gerando…" : "Gerar relatório IA"}</button>
+            {aiReport && <div className="notice" style={{ marginTop: 8, whiteSpace: "pre-wrap" }}>{aiReport}</div>}
+          </div>}
         </> : <div className="vod-empty-state"><span><Film size={21} /></span><h3>Selecione uma VOD</h3><p>Abra uma partida da lista para assistir ao vídeo e consultar a análise.</p>{role === "student" && <div><MousePointer2 size={14} /> Envie sua primeira partida pelo formulário ao lado.</div>}</div>}
         {message && <div className="recovery-error" role="alert">{message}</div>}
       </div>
