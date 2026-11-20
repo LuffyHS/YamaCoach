@@ -125,7 +125,7 @@ export function StreamRoom({ sessionId, userId, userName, coach, publicRoom, par
       }
 
       const sb = createClient();
-      const liveChannel = sb.channel(`live-session-${sessionId}`, { config: { broadcast: { self: false, ack: true }, presence: { key: userId } } }); channel.current = liveChannel;
+      const liveChannel = sb.channel(`live-session-${sessionId}`, { config: { private: true, broadcast: { self: false, ack: true }, presence: { key: userId } } }); channel.current = liveChannel;
       const turnUrl = process.env.NEXT_PUBLIC_TURN_URL;
       const iceServers: RTCIceServer[] = [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }];
       if (turnUrl) iceServers.push({ urls: turnUrl, username: process.env.NEXT_PUBLIC_TURN_USERNAME, credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL });

@@ -63,3 +63,50 @@ with check (
     )
   )
 );
+
+-- Private Realtime authorization: only the room coach or an active student can join.
+drop policy if exists live_session_channels_read on realtime.messages;
+create policy live_session_channels_read on realtime.messages
+for select to authenticated
+using (
+  extension in ('broadcast', 'presence')
+  and exists (
+    select 1 from public.live_sessions ls
+    where ls.id::text = substring((select realtime.topic()) from 14)
+      and (
+        ls.coach_id = (select auth.uid())
+        or (
+          not ls.is_public
+          and (ls.student_id = (select auth.uid()) or (select auth.uid()) = any(ls.student_ids))
+          and exists (select 1 from public.profiles p where p.id = (select auth.uid()) and p.role = 'student' and p.is_active and p.subscription_expires_at > now())
+        )
+        or (
+          ls.is_public and ls.status in ('scheduled', 'live')
+          and exists (select 1 from public.profiles p where p.id = (select auth.uid()) and p.role = 'student' and p.is_active and p.subscription_expires_at > now())
+        )
+      )
+  )
+);
+
+drop policy if exists live_session_channels_write on realtime.messages;
+create policy live_session_channels_write on realtime.messages
+for insert to authenticated
+with check (
+  extension in ('broadcast', 'presence')
+  and exists (
+    select 1 from public.live_sessions ls
+    where ls.id::text = substring((select realtime.topic()) from 14)
+      and (
+        ls.coach_id = (select auth.uid())
+        or (
+          not ls.is_public
+          and (ls.student_id = (select auth.uid()) or (select auth.uid()) = any(ls.student_ids))
+          and exists (select 1 from public.profiles p where p.id = (select auth.uid()) and p.role = 'student' and p.is_active and p.subscription_expires_at > now())
+        )
+        or (
+          ls.is_public and ls.status in ('scheduled', 'live')
+          and exists (select 1 from public.profiles p where p.id = (select auth.uid()) and p.role = 'student' and p.is_active and p.subscription_expires_at > now())
+        )
+      )
+  )
+);

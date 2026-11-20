@@ -23,7 +23,7 @@ Depois que o Render mostrar o endereço, abra **Supabase → Authentication → 
 
 Use o endereço real criado para o serviço, tanto no Site URL quanto no callback. Confirme também que as migrações SQL do projeto já foram executadas no Supabase.
 
-Para liberar a nova sala pública, abra o SQL Editor do Supabase, cole o conteúdo de `supabase/public_class.sql` e execute uma vez. A migração permite que apenas alunos ativos vejam a sala e pode ser executada novamente com segurança.
+Para liberar a nova sala pública e proteger a sinalização WebRTC, abra o SQL Editor do Supabase, cole o conteúdo de `supabase/public_class.sql` e execute uma vez. Depois, em **Project Settings → Realtime**, desative **Allow public access** para exigir canais privados e aplicar essas políticas de autorização. A migração pode ser executada novamente com segurança.
 
 ## Observações
 
