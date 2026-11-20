@@ -11,6 +11,7 @@ const updateSchema = z.object({ id: z.string().uuid(), notes: z.string().max(500
 const createSchema = z.object({
   student_ids: z.array(z.string().uuid()).min(1).max(6).optional(),
   student_id: z.string().uuid().optional(),
+  is_public: z.boolean().optional().default(false),
   title: z.string().trim().min(1).max(120),
   scheduled_at: z.string().min(1).max(40),
   url: urlField.optional().default(""),
@@ -48,19 +49,24 @@ export async function PUT(request: Request) {
   if (!input.success || !Number.isFinite(Date.parse(input.data?.scheduled_at || ""))) {
     return NextResponse.json({ error: "Revise os dados da sessão." }, { status: 400 });
   }
-  const studentIds = [...new Set(input.data.student_ids?.length ? input.data.student_ids : input.data.student_id ? [input.data.student_id] : [])];
-  if (!studentIds.length) return NextResponse.json({ error: "Selecione ao menos um aluno." }, { status: 400 });
+  const studentIds = input.data.is_public
+    ? [user.id]
+    : [...new Set(input.data.student_ids?.length ? input.data.student_ids : input.data.student_id ? [input.data.student_id] : [])];
+  if (!studentIds.length) return NextResponse.json({ error: "Selecione ao menos um aluno ou crie uma sala pública." }, { status: 400 });
   const supabase = await createClient();
-  const { data: students, error: studentError } = await supabase.from("profiles")
-    .select("id").in("id", studentIds).eq("role", "student");
-  if (studentError) return NextResponse.json({ error: "Não foi possível validar os alunos." }, { status: 500 });
-  if ((students ?? []).length !== studentIds.length) return NextResponse.json({ error: "Um ou mais alunos não foram encontrados." }, { status: 404 });
+  if (!input.data.is_public) {
+    const { data: students, error: studentError } = await supabase.from("profiles")
+      .select("id").in("id", studentIds).eq("role", "student");
+    if (studentError) return NextResponse.json({ error: "Não foi possível validar os alunos." }, { status: 500 });
+    if ((students ?? []).length !== studentIds.length) return NextResponse.json({ error: "Um ou mais alunos não foram encontrados." }, { status: 404 });
+  }
   const { count, error: countError } = await supabase.from("live_sessions").select("id", { count: "exact", head: true }).eq("coach_id", user.id).in("status", ["scheduled", "live"]);
   if (countError) return NextResponse.json({ error: "Não foi possível validar o limite de salas." }, { status: 500 });
   if ((count ?? 0) >= 5) return NextResponse.json({ error: "Você já atingiu o limite de cinco salas ativas. Encerre uma sala para criar outra." }, { status: 409 });
   const { error } = await supabase.from("live_sessions").insert({
     student_id: studentIds[0],
     student_ids: studentIds,
+    is_public: input.data.is_public,
     coach_id: user.id,
     title: input.data.title,
     stream_url: input.data.url,
@@ -75,11 +81,11 @@ export async function PUT(request: Request) {
 export async function PATCH(request: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-  if (user.role !== "coach") return NextResponse.json({ error: "Apenas o coach pode encerrar salas." }, { status: 403 });
-  const input = z.object({ id: z.string().uuid(), status: z.literal("ended") }).safeParse(await request.json().catch(() => null));
+  if (user.role !== "coach") return NextResponse.json({ error: "Apenas o coach pode atualizar o status da sala." }, { status: 403 });
+  const input = z.object({ id: z.string().uuid(), status: z.enum(["live", "ended"]) }).safeParse(await request.json().catch(() => null));
   if (!input.success) return NextResponse.json({ error: "Sala inválida." }, { status: 400 });
   const supabase = await createClient();
-  const { data, error } = await supabase.from("live_sessions").update({ status: "ended", updated_at: new Date().toISOString() }).eq("id", input.data.id).eq("coach_id", user.id).select("id").maybeSingle();
+  const { data, error } = await supabase.from("live_sessions").update({ status: input.data.status, updated_at: new Date().toISOString() }).eq("id", input.data.id).eq("coach_id", user.id).select("id").maybeSingle();
   if (error) return NextResponse.json({ error: "Não foi possível encerrar a sala." }, { status: 500 });
   if (!data) return NextResponse.json({ error: "Sala não encontrada." }, { status: 404 });
   return NextResponse.json({ ok: true });

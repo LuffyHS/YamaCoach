@@ -21,7 +21,7 @@ function observeSpeech(stream: MediaStream, onChange: (speaking: boolean) => voi
   return () => { cancelAnimationFrame(frame); source.disconnect(); analyser.disconnect(); void context.close(); onChange(false); };
 }
 
-export function StreamRoom({ sessionId, userId, coach, participants }: { sessionId: string; userId: string; coach: boolean; participants: Participant[] }) {
+export function StreamRoom({ sessionId, userId, userName, coach, publicRoom, participants }: { sessionId: string; userId: string; userName: string; coach: boolean; publicRoom: boolean; participants: Participant[] }) {
   const localVideo = useRef<HTMLVideoElement>(null);
   const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
   const peers = useRef<Record<string, RTCPeerConnection>>({});
@@ -45,8 +45,10 @@ export function StreamRoom({ sessionId, userId, coach, participants }: { session
   const [localSpeaking, setLocalSpeaking] = useState(false);
   const [localHasVideo, setLocalHasVideo] = useState(false);
   const [remoteViews, setRemoteViews] = useState<Record<string, RemoteView>>({});
+  const [presenceParticipants, setPresenceParticipants] = useState<Participant[]>([]);
   const [error, setError] = useState("");
-  const remoteParticipants = participants.filter(p => p.id !== userId);
+  const announcedParticipants = useRef(new Set<string>());
+  const remoteParticipants = (publicRoom ? presenceParticipants : participants).filter(p => p.id !== userId);
 
   function send(to: string, signal: SignalPayload) {
     if (channel.current) void channel.current.send({ type: "broadcast", event: "signal", payload: { ...signal, from: userId, to } });
@@ -64,7 +66,7 @@ export function StreamRoom({ sessionId, userId, coach, participants }: { session
     screen.current?.getTracks().forEach(track => track.stop()); screen.current = null;
     if (localVideo.current) localVideo.current.srcObject = null;
     Object.values(videoRefs.current).forEach(video => { if (video) video.srcObject = null; });
-    setStarted(false); setMic(false); setNoiseSuppression(false); setNoiseSupported(false); setCamera(false); setSharing(false); setLocalHasVideo(false); setLocalSpeaking(false); setRemoteViews({}); setStatus("Aguardando participante");
+    setStarted(false); setMic(false); setNoiseSuppression(false); setNoiseSupported(false); setCamera(false); setSharing(false); setLocalHasVideo(false); setLocalSpeaking(false); setRemoteViews({}); setPresenceParticipants([]); announcedParticipants.current.clear(); setStatus("Aguardando participante");
   }
   useEffect(() => () => cleanup(), []);
 
@@ -77,7 +79,7 @@ export function StreamRoom({ sessionId, userId, coach, participants }: { session
       setNoiseSupported(true);
       setNoiseSuppression(true);
       const processedAudio: MediaTrackConstraints = { echoCancellation: true, autoGainControl: true, ...(supported ? { noiseSuppression: true } : {}) };
-      try { local = await navigator.mediaDevices.getUserMedia({ audio: processedAudio, video: true }); }
+      try { local = await navigator.mediaDevices.getUserMedia({ audio: processedAudio, video: !publicRoom }); }
       catch { try { local = await navigator.mediaDevices.getUserMedia({ audio: processedAudio, video: false }); }
         catch { try { local = await navigator.mediaDevices.getUserMedia({ audio: true, video: false }); }
           catch { setError("Microfone e câmera indisponíveis. Você ainda pode receber o vídeo e compartilhar a tela."); } } }
@@ -123,7 +125,7 @@ export function StreamRoom({ sessionId, userId, coach, participants }: { session
       }
 
       const sb = createClient();
-      const liveChannel = sb.channel(`live-session-${sessionId}`, { config: { broadcast: { self: false, ack: true } } }); channel.current = liveChannel;
+      const liveChannel = sb.channel(`live-session-${sessionId}`, { config: { broadcast: { self: false, ack: true }, presence: { key: userId } } }); channel.current = liveChannel;
       const turnUrl = process.env.NEXT_PUBLIC_TURN_URL;
       const iceServers: RTCIceServer[] = [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }];
       if (turnUrl) iceServers.push({ urls: turnUrl, username: process.env.NEXT_PUBLIC_TURN_USERNAME, credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL });
@@ -157,6 +159,16 @@ export function StreamRoom({ sessionId, userId, coach, participants }: { session
         return peer;
       }
 
+      if (publicRoom) liveChannel.on("presence", { event: "sync" }, () => {
+        const metadata = Object.values(liveChannel.presenceState<{ user_id: string; full_name: string; role: string }>()).flat();
+        const people = new Map<string, Participant>();
+        metadata.forEach(item => { if (item.user_id && item.full_name) people.set(item.user_id, { id: item.user_id, name: item.full_name }); });
+        setPresenceParticipants([...people.values()]);
+        for (const person of people.values()) if (person.id !== userId && !announcedParticipants.current.has(person.id)) {
+          announcedParticipants.current.add(person.id);
+          send(person.id, { type: "join" });
+        }
+      });
       liveChannel.on("broadcast", { event: "signal" }, async ({ payload }) => {
         const signal = payload as Signal;
         if (!signal || signal.to !== userId || signal.from === userId) return;
@@ -183,9 +195,17 @@ export function StreamRoom({ sessionId, userId, coach, participants }: { session
           }
         } catch { setError("A conexão da sala falhou. Saia e entre novamente para reconectar."); }
       });
-      liveChannel.subscribe(state => {
+      liveChannel.subscribe(async state => {
         if (state === "SUBSCRIBED") {
           setStatus("Aguardando participante");
+          if (coach) void fetch("/api/live", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: sessionId, status: "live" }) });
+          if (publicRoom) {
+            const currentlyPresent = Object.values(liveChannel.presenceState()).flat();
+            if (currentlyPresent.length >= 20) {
+              cleanup(); setError("Esta aula já atingiu o limite de 20 participantes."); setStatus("Sala lotada"); return;
+            }
+            await liveChannel.track({ user_id: userId, full_name: userName, role: coach ? "coach" : "student", joined_at: new Date().toISOString() });
+          }
           const announce = () => remoteParticipants.forEach(person => send(person.id, { type: "join" }));
           announce(); joinTimer.current = setInterval(announce, 2800);
         } else if (state === "CHANNEL_ERROR" || state === "TIMED_OUT") { setError("Não foi possível entrar. Confira o Supabase Realtime e tente novamente."); setStatus("Desconectado"); }
@@ -224,10 +244,11 @@ export function StreamRoom({ sessionId, userId, coach, participants }: { session
     <header className="voice-room-header"><div><div className="voice-room-eyebrow"><Radio size={13} /> YAMA LIVE ROOM</div><h2>Sessão de coaching</h2><p>Áudio, vídeo e compartilhamento de tela para todo o grupo.</p></div><div className="voice-room-header-right"><span className="voice-participant-total"><UsersRound size={15} /> {remoteParticipants.length + 1}</span><div className={`voice-connection ${connectedCount ? "is-connected" : ""}`} aria-live="polite"><span className="voice-connection-dot" /><span>{connectedCount ? `Ao vivo · ${connectedCount}/${remoteParticipants.length}` : status}</span>{connectedCount > 0 && <Wifi size={14} />}</div></div></header>
     <div className="voice-call-body"><div className="voice-stage voice-stage-group">
       <article className={`voice-participant ${localSpeaking ? "is-speaking" : ""}`}><video ref={localVideo} autoPlay muted playsInline className={`voice-video ${localHasVideo ? "is-visible" : ""}`} />{!localHasVideo && <div className="voice-avatar voice-avatar-local">{coach ? "C" : "A"}</div>}<div className="voice-participant-top"><span className="voice-you-badge">Você</span>{sharing && <span className="voice-sharing"><MonitorUp size={12} /> Tela</span>}</div><div className="voice-participant-footer"><span><strong>Você</strong><small>{localSpeaking ? "Falando agora" : coach ? "Coach" : "Aluno"}</small></span><span className={`voice-mic-state ${mic && started ? "" : "is-muted"}`}>{mic && started ? <Mic size={15} /> : <MicOff size={15} />}</span></div></article>
-      {remoteParticipants.map(person => { const view = remoteViews[person.id]; return <article key={person.id} className={`voice-participant ${view?.speaking ? "is-speaking" : ""}`}><video ref={element => { videoRefs.current[person.id] = element; if (element && view?.stream) element.srcObject = view.stream; }} autoPlay playsInline className={`voice-video ${view?.hasVideo ? "is-visible" : ""}`} />{!view?.hasVideo && <div className="voice-avatar">{person.name.slice(0, 1).toUpperCase()}</div>}<div className="voice-participant-top"><span className={`voice-presence ${view?.connected ? "is-online" : ""}`}><i />{view?.connected ? "Conectado" : started ? "Conectando" : "Aguardando"}</span></div><div className="voice-participant-footer"><span><strong>{person.name}</strong><small>{view?.speaking ? "Falando agora" : view?.hasAudio ? "Áudio conectado" : "Aguardando entrada"}</small></span><span className={`voice-mic-state ${view?.hasAudio ? "" : "is-muted"}`}>{view?.hasAudio ? <Headphones size={15} /> : <MicOff size={15} />}</span></div></article>; })}
-      {remoteParticipants.length === 0 && <div className="voice-no-participants">Nenhum participante vinculado a esta sala.</div>}
+      {remoteParticipants.slice(0, publicRoom ? 8 : undefined).map(person => { const view = remoteViews[person.id]; return <article key={person.id} className={`voice-participant ${view?.speaking ? "is-speaking" : ""}`}><video ref={element => { videoRefs.current[person.id] = element; if (element && view?.stream) element.srcObject = view.stream; }} autoPlay playsInline className={`voice-video ${view?.hasVideo ? "is-visible" : ""}`} />{!view?.hasVideo && <div className="voice-avatar">{person.name.slice(0, 1).toUpperCase()}</div>}<div className="voice-participant-top"><span className={`voice-presence ${view?.connected ? "is-online" : ""}`}><i />{view?.connected ? "Conectado" : started ? "Conectando" : "Aguardando"}</span></div><div className="voice-participant-footer"><span><strong>{person.name}</strong><small>{view?.speaking ? "Falando agora" : view?.hasAudio ? "Áudio conectado" : "Aguardando entrada"}</small></span><span className={`voice-mic-state ${view?.hasAudio ? "" : "is-muted"}`}>{view?.hasAudio ? <Headphones size={15} /> : <MicOff size={15} />}</span></div></article>; })}
+      {publicRoom && remoteParticipants.length > 8 && <div className="voice-no-participants">+ {remoteParticipants.length - 8} participantes na lista ao lado</div>}
+      {remoteParticipants.length === 0 && <div className="voice-no-participants">{publicRoom ? "Aguardando a entrada da turma." : "Nenhum participante vinculado a esta sala."}</div>}
     </div><aside className="voice-roster"><div className="voice-roster-heading"><span>PARTICIPANTES</span><b>{remoteParticipants.length + 1}</b></div><div className={`voice-roster-person ${localSpeaking ? "is-speaking" : ""}`}><span className="voice-roster-avatar">{coach ? "C" : "A"}</span><span className="voice-roster-name"><b>Você</b><small>{coach ? "Coach" : "Aluno"}</small></span><span className={`voice-roster-mic ${mic && started ? "" : "is-muted"}`}>{mic && started ? <Mic size={14} /> : <MicOff size={14} />}</span></div>{remoteParticipants.map(person => { const view = remoteViews[person.id]; return <div className={`voice-roster-person ${view?.speaking ? "is-speaking" : ""}`} key={person.id}><span className="voice-roster-avatar">{person.name.slice(0, 1).toUpperCase()}</span><span className="voice-roster-name"><b>{person.name}</b><small>{view?.connected ? "Na sala" : started ? "Conectando" : "Aguardando"}</small></span><span className={`voice-roster-mic ${view?.hasAudio ? "" : "is-muted"}`}>{view?.hasAudio ? <Headphones size={14} /> : <MicOff size={14} />}</span></div>; })}<div className="voice-roster-footnote">O contorno verde acende quando alguém está falando.</div></aside></div>
-    <footer className="voice-toolbar"><div className="voice-toolbar-group"><button className={`voice-control ${!mic && started ? "is-muted" : ""}`} onClick={() => toggle("audio")} disabled={!started}><>{mic ? <Mic size={18} /> : <MicOff size={18} />}<span>{mic ? "Microfone" : "Silenciado"}</span></></button><button className={`voice-control ${noiseSuppression ? "is-noise-active" : ""}`} onClick={() => void toggleNoiseSuppression()} disabled={!started || !noiseSupported} title="Redução nativa, filtro de graves e gate de voz"><AudioLines size={18} /><span>{noiseSuppression ? "Ruído reduzido" : "Redução de ruído"}</span></button><button className={`voice-control ${!camera && started ? "is-muted" : ""}`} onClick={() => toggle("video")} disabled={!started}>{camera ? <Video size={18} /> : <VideoOff size={18} />}<span>{camera ? "Câmera" : "Câmera off"}</span></button><button className={`voice-control ${sharing ? "is-sharing" : ""}`} onClick={() => void shareScreen()} disabled={!started}><MonitorUp size={18} /><span>{sharing ? "Parar tela" : "Compartilhar tela"}</span></button></div><button className={`voice-join-button ${started ? "is-leave" : ""}`} onClick={() => started ? cleanup() : void start()}>{started ? <><Phone size={17} /> Sair da sala</> : <><Headphones size={17} /> Entrar na sala</>}</button><div className="voice-room-meta"><span className="voice-room-lock" /> Sala privada · <span className="voice-mono">{sessionId.slice(0, 8).toUpperCase()}</span></div></footer>
+    <footer className="voice-toolbar"><div className="voice-toolbar-group"><button className={`voice-control ${!mic && started ? "is-muted" : ""}`} onClick={() => toggle("audio")} disabled={!started}><>{mic ? <Mic size={18} /> : <MicOff size={18} />}<span>{mic ? "Microfone" : "Silenciado"}</span></></button><button className={`voice-control ${noiseSuppression ? "is-noise-active" : ""}`} onClick={() => void toggleNoiseSuppression()} disabled={!started || !noiseSupported} title="Redução nativa, filtro de graves e gate de voz"><AudioLines size={18} /><span>{noiseSuppression ? "Ruído reduzido" : "Redução de ruído"}</span></button><button className={`voice-control ${!camera && started ? "is-muted" : ""}`} onClick={() => toggle("video")} disabled={!started || publicRoom}>{camera ? <Video size={18} /> : <VideoOff size={18} />}<span>{publicRoom ? "Câmera desativada na aula" : camera ? "Câmera" : "Câmera off"}</span></button><button className={`voice-control ${sharing ? "is-sharing" : ""}`} onClick={() => void shareScreen()} disabled={!started}><MonitorUp size={18} /><span>{sharing ? "Parar tela" : "Compartilhar tela"}</span></button></div><button className={`voice-join-button ${started ? "is-leave" : ""}`} onClick={() => started ? cleanup() : void start()}>{started ? <><Phone size={17} /> Sair da sala</> : <><Headphones size={17} /> Entrar na sala</>}</button><div className="voice-room-meta"><span className="voice-room-lock" /> {publicRoom ? "Aula aberta" : "Sala privada"} · <span className="voice-mono">{sessionId.slice(0, 8).toUpperCase()}</span></div></footer>
     {error && <div className="voice-error" role="alert">{error}</div>}
   </section>;
 }

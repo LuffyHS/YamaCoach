@@ -1,0 +1,45 @@
+name: Build Yama Coach for Windows
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "desktop/**"
+      - "app/download/page.tsx"
+      - ".github/workflows/windows-desktop.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-installer:
+    runs-on: windows-latest
+    steps:
+      - name: Get source
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install desktop dependencies
+        run: npm install --no-audit --no-fund
+        working-directory: desktop
+      - name: Configure production address
+        shell: pwsh
+        env:
+          YAMA_APP_URL: https://yamacoach.onrender.com
+        run: |
+          $target = [Uri]$env:YAMA_APP_URL
+          if ($target.Scheme -ne "https") { throw "YAMA_APP_URL must use HTTPS." }
+          Set-Content -Path desktop/.env.production -Value "YAMA_APP_URL=$env:YAMA_APP_URL" -NoNewline
+      - name: Build Windows installer
+        run: npm run build:win
+        working-directory: desktop
+      - name: Publish installer release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "desktop-build-${{ github.run_number }}-${{ github.run_attempt }}"
+          gh release create $tag desktop/release/YamaCoach-Setup.exe --repo $env:GITHUB_REPOSITORY --title "Yama Coach para Windows ($tag)" --notes "Instalador Windows x64 do Yama Coach."

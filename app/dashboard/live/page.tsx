@@ -14,7 +14,7 @@ export default async function LivePage() {
     ? supabase.from("profiles").select("id,full_name").eq("role", "student")
     : Promise.resolve({ data: [], error: null });
   const [{ data: sessionsData, error: sessionsError }, { data: studentsData, error: studentsError }] = await Promise.all([
-    user.role === "coach" ? sessionQuery.eq("coach_id", user.id) : sessionQuery.or(`student_id.eq.${user.id},student_ids.cs.{${user.id}}`),
+    user.role === "coach" ? sessionQuery.eq("coach_id", user.id) : sessionQuery.or(`student_id.eq.${user.id},student_ids.cs.{${user.id}},and(is_public.eq.true,status.neq.ended)`),
     studentsQuery,
   ]);
 
@@ -30,9 +30,9 @@ export default async function LivePage() {
   return <main className="content live-page">
     <div className="page-heading live-page-heading">
       <div>
-        <div className="live-page-kicker"><span className="live-dot" /> COACHING PRIVADO · {user.role === "coach" ? "ÁREA DO COACH" : "SUA SESSÃO"}</div>
+        <div className="live-page-kicker"><span className="live-dot" /> COACHING AO VIVO · {user.role === "coach" ? "ÁREA DO COACH" : "SUA SESSÃO"}</div>
         <h1>Sala ao vivo</h1>
-        <p>Converse, compartilhe sua tela e acompanhe a revisão em tempo real.</p>
+        <p>{user.role === "coach" ? "Abra uma aula para sua turma ou agende uma sessão individual." : "Entre na sala da turma ou na sessão agendada pelo seu coach."}</p>
       </div>
       {session && <div className="live-session-summary"><span className="live-session-icon"><Radio size={17} /></span><span><b>{sessions.length} {sessions.length === 1 ? "sala" : "salas"}</b><small>{session.title}</small></span></div>}
     </div>

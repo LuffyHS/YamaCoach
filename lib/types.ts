@@ -87,6 +87,7 @@ export type LiveSession = {
   notes: string;
   scheduled_at: string;
   status: LiveStatus;
+  is_public?: boolean;
   updated_at: string;
   created_at?: string;
 };

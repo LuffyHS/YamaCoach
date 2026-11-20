@@ -1,6 +1,6 @@
 # Yama Coach para Windows
 
-O aplicativo desktop reaproveita o site e o Supabase já existentes. O processo Electron mantém a sessão em uma janela própria, sem expor APIs do Node ao conteúdo do site.
+O Yama Coach instala como um programa Windows (.exe), com atalho no Desktop e no menu Iniciar. A janela do programa conecta ao serviço seguro do Yama Coach para autenticação, dados e sincronização; é necessário estar conectado à internet.
 
 ## Desenvolvimento local
 
@@ -12,9 +12,6 @@ Defina `YAMA_APP_URL` no ambiente para apontar o app a outra URL durante o desen
 
 ## Instalador Windows
 
-1. Publique o site com HTTPS.
-2. Copie `.env.example` para `.env.production` e informe a URL real do site.
-3. Instale as dependências nesta pasta e rode `npm run build:win`.
-4. O instalador NSIS será gerado em `desktop/release/`.
+O workflow `.github/workflows/windows-desktop.yml` compila o instalador para Windows e publica o `.exe` em uma release do GitHub ao atualizar a versão desktop.
 
-Não distribuir o instalador até configurar a URL de produção e validar o fluxo de autenticação nesse domínio.
+Para compilar manualmente, crie `.env.production` baseado em `.env.example`, use o endereço HTTPS do serviço publicado em `YAMA_APP_URL`, instale as dependências em `desktop/` e rode `npm run build:win`. O instalador NSIS será gerado em `desktop/release/`.

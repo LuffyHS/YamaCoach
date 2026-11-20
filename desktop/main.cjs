@@ -2,6 +2,7 @@
 const { app, BrowserWindow, shell } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
+let configuredAppUrl = "";
 
 const packagedEnv = path.join(process.resourcesPath || "", "app.env");
 if (app.isPackaged && fs.existsSync(packagedEnv)) {
@@ -11,7 +12,7 @@ if (app.isPackaged && fs.existsSync(packagedEnv)) {
   }
 }
 
-function createWindow() {
+function createWindow(appUrl) {
   const window = new BrowserWindow({
     width: 1440,
     height: 920,
@@ -29,7 +30,6 @@ function createWindow() {
     },
   });
 
-  const appUrl = process.env.YAMA_APP_URL || "http://localhost:3000";
   let trustedOrigin;
   try { trustedOrigin = new URL(appUrl).origin; } catch { trustedOrigin = "http://localhost:3000"; }
   window.webContents.setWindowOpenHandler(({ url }) => {
@@ -48,7 +48,13 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  createWindow();
-  app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+  const appUrl = process.env.YAMA_APP_URL || (app.isPackaged ? "" : "http://localhost:3000");
+  let validUrl = false;
+  try { const parsed = new URL(appUrl); validUrl = parsed.protocol === "https:" || (!app.isPackaged && parsed.hostname === "localhost"); }
+  catch { validUrl = false; }
+  if (!validUrl) { require("electron").dialog.showErrorBox("Yama Coach não configurado", "Não foi possível localizar o endereço seguro do serviço. Reinstale o Yama Coach usando o instalador mais recente."); app.quit(); return; }
+  configuredAppUrl = appUrl;
+  createWindow(configuredAppUrl);
+  app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(configuredAppUrl); });
 });
 app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });

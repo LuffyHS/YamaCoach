@@ -2,10 +2,10 @@
 
 import { useEffect } from "react";
 
-export function PwaRegister() {
+export function ServiceWorkerCleanup() {
   useEffect(() => {
-    if (process.env.NODE_ENV !== "production" || !("serviceWorker" in navigator)) return;
-    void navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => undefined);
+    if (!("serviceWorker" in navigator)) return;
+    void navigator.serviceWorker.getRegistrations().then((registrations) => Promise.all(registrations.map((registration) => registration.unregister()))).catch(() => undefined);
   }, []);
   return null;
 }

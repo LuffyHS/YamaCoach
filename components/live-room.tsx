@@ -16,6 +16,7 @@ export function LiveRoom({ user, sessions, students = [] }: { user: SessionUser;
   const [title, setTitle] = useState(session?.title || "");
   const [url, setUrl] = useState(session?.stream_url || "");
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+  const [isPublicRoom, setIsPublicRoom] = useState(false);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const sessionStudentIds = session?.student_ids?.length ? session.student_ids : session?.student_id ? [session.student_id] : [];
@@ -40,10 +41,10 @@ export function LiveRoom({ user, sessions, students = [] }: { user: SessionUser;
   }
 
   async function create(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault(); if (!selectedStudents.length) { setMessage("Selecione pelo menos um aluno."); return; }
+    event.preventDefault(); if (!isPublicRoom && !selectedStudents.length) { setMessage("Selecione pelo menos um aluno."); return; }
     setBusy(true); setMessage("");
     const data = new FormData(event.currentTarget);
-    const body = { title: data.get("title"), scheduled_at: data.get("scheduled_at"), url: data.get("url"), notes: "", student_ids: selectedStudents };
+    const body = { title: data.get("title"), scheduled_at: isPublicRoom ? new Date().toISOString() : data.get("scheduled_at"), url: data.get("url"), notes: "", student_ids: selectedStudents, is_public: isPublicRoom };
     try {
       const response = await fetch("/api/live", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
       const result = await response.json(); if (!response.ok) throw new Error(result.error || "Não foi possível criar a sessão.");
@@ -91,7 +92,7 @@ export function LiveRoom({ user, sessions, students = [] }: { user: SessionUser;
           return <div key={item.id} className="live-room-row">
             <button type="button" className={`live-room-choice ${item.id === session?.id ? "is-selected" : ""}`} onClick={() => selectSession(item)}>
               <span className={`live-room-choice-icon ${item.status === "live" ? "is-live" : ""}`}><Radio size={16} /></span>
-              <span className="live-room-choice-info"><b>{item.title}</b><small><Users size={12} />{names.length ? names.join(", ") : "Sala individual"}</small></span>
+              <span className="live-room-choice-info"><b>{item.title}</b><small><Users size={12} />{item.is_public ? "Aula aberta · alunos ativos" : names.length ? names.join(", ") : "Sala individual"}</small></span>
               <span className={`live-room-state ${item.status === "live" ? "is-live" : item.status === "ended" ? "is-ended" : ""}`}><i />{item.status === "live" ? "Ao vivo" : item.status === "ended" ? "Encerrada" : "Agendada"}</span>
             </button>
             {user.role === "coach" && item.status === "ended" && <button type="button" className="live-room-delete" title="Excluir sala encerrada" aria-label={`Excluir a sala ${item.title}`} disabled={busy} onClick={() => void deleteSession(item)}><Trash2 size={15}/><span>Excluir</span></button>}
@@ -100,25 +101,26 @@ export function LiveRoom({ user, sessions, students = [] }: { user: SessionUser;
       </div>
       {user.role === "coach" && activeSessions.length < 5 && <details className="live-create-details"><summary><CirclePlus size={16} /> Criar nova sala</summary>
         <form className="live-create-form" onSubmit={create}>
-          <div className="live-student-picker"><div className="live-picker-label"><span>Participantes</span><small>{selectedStudents.length} selecionados</small></div>
+          <label className={`live-public-room-option ${isPublicRoom ? "is-selected" : ""}`}><input type="checkbox" checked={isPublicRoom} onChange={event => setIsPublicRoom(event.target.checked)} /><span><b>Aula pública da turma</b><small>Qualquer aluno com assinatura ativa pode entrar. Limite de 20 participantes.</small></span></label>
+          {!isPublicRoom && <div className="live-student-picker"><div className="live-picker-label"><span>Participantes</span><small>{selectedStudents.length} selecionados · até 6</small></div>
             <div className="live-student-options">{students.map(student => <label key={student.id} className={`live-student-option ${selectedStudents.includes(student.id) ? "is-selected" : ""}`}><input type="checkbox" checked={selectedStudents.includes(student.id)} onChange={() => toggleStudent(student.id)} /><span>{student.full_name.slice(0, 1).toUpperCase()}</span>{student.full_name}</label>)}</div>
             {!students.length && <small>Nenhum aluno cadastrado ainda.</small>}
-          </div>
-          <div className="live-create-fields"><label className="label">Título<input name="title" required maxLength={120} className="field" placeholder="Revisão de VOD em grupo" /></label><label className="label">Data e hora<input name="scheduled_at" type="datetime-local" required className="field" /></label><label className="label">Link adicional (opcional)<input name="url" type="url" maxLength={500} className="field" placeholder="https://" /></label></div>
-          <button className="button primary" disabled={busy || !students.length}>{busy ? "Criando sala…" : "Criar sala"}</button>
+          </div>}
+          <div className="live-create-fields"><label className="label">Título<input name="title" required maxLength={120} className="field" placeholder={isPublicRoom ? "Aula aberta da turma" : "Revisão de VOD em grupo"} /></label>{isPublicRoom ? <p className="live-public-start-note">A sala será aberta imediatamente para alunos com acesso ativo.</p> : <label className="label">Data e hora<input name="scheduled_at" type="datetime-local" required className="field" /></label>}<label className="label">Link adicional (opcional)<input name="url" type="url" maxLength={500} className="field" placeholder="https://" /></label></div>
+          <button className="button primary" disabled={busy || (!isPublicRoom && !students.length)}>{busy ? "Criando sala…" : isPublicRoom ? "Abrir sala para a turma" : "Criar sala"}</button>
         </form>
       </details>}
       {user.role === "coach" && activeSessions.length >= 5 && <div className="live-limit-note"><span>Limite de 5 salas ativas atingido.</span> Encerre uma sala para abrir outra.</div>}
     </section>
 
     {session ? <>
-      <StreamRoom key={session.id} sessionId={session.id} userId={user.id} coach={user.role === "coach"} participants={participantList} />
+      <StreamRoom key={session.id} sessionId={session.id} userId={user.id} userName={user.full_name} coach={user.role === "coach"} publicRoom={Boolean(session.is_public)} participants={participantList} />
       <section className="live-session-details">
         <div className="live-details-heading"><div><div className="live-page-kicker">{session.status === "ended" ? "SESSÃO ENCERRADA" : "SESSÃO SELECIONADA"}</div><h2>{session.title}</h2></div><span className="live-session-id"><CalendarClock size={13} />{new Date(session.scheduled_at).toLocaleString("pt-BR", { dateStyle: "medium", timeStyle: "short" })}</span></div>
-        <div className="grid split live-details-grid"><section className="card"><h3 className="card-title">Informações da sala</h3><p className="live-participant-names"><Users size={15} />{selectedNames.length ? selectedNames.join(", ") : "Participantes da sessão"}</p>
+        <div className="grid split live-details-grid"><section className="card"><h3 className="card-title">Informações da sala</h3><p className="live-participant-names"><Users size={15} />{session.is_public ? "Aberta para alunos com assinatura ativa" : selectedNames.length ? selectedNames.join(", ") : "Participantes da sessão"}</p>
           {user.role === "coach" && <><label className="label">Título<input className="field" maxLength={120} value={title} onChange={e => setTitle(e.target.value)} /></label><label className="label">Link adicional<input className="field" type="url" maxLength={500} value={url} onChange={e => setUrl(e.target.value)} /></label><div className="live-session-actions"><button className="button secondary" onClick={() => void save()} disabled={busy}>Salvar alterações</button>{session.status !== "ended" && <button className="button live-end-button" onClick={() => void endSession()} disabled={busy}><X size={14} /> Encerrar sala</button>}</div></>}
           {session.stream_url && <a className="live-extra-link" href={session.stream_url} target="_blank" rel="noreferrer">Abrir link adicional <ArrowUpRight size={14} /></a>}
-        </section><section className="card"><h3 className="card-title">Notas compartilhadas</h3><textarea className="field" rows={8} maxLength={5000} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Anote os principais pontos desta sessão…" /><button className="button primary" onClick={() => void save()} disabled={busy}>{busy ? "Salvando…" : "Salvar notas"}</button>{message && <div className="toast" role="status">{message}</div>}</section></div>
+        </section><section className="card"><h3 className="card-title">Notas compartilhadas</h3>{user.role === "coach" || !session.is_public ? <><textarea className="field" rows={8} maxLength={5000} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Anote os principais pontos desta sessão…" /><button className="button primary" onClick={() => void save()} disabled={busy}>{busy ? "Salvando…" : "Salvar notas"}</button></> : <div className="live-public-notes">{notes || "O coach ainda não publicou anotações para esta aula."}</div>}{message && <div className="toast" role="status">{message}</div>}</section></div>
       </section>
     </> : <div className="live-empty-banner"><div className="live-empty-icon"><Radio size={20} /></div><div><b>Nenhuma sala selecionada</b><span>{user.role === "coach" ? "Crie uma sala e escolha um ou mais alunos para começar." : "Quando houver uma sessão agendada, ela aparecerá aqui."}</span></div></div>}
   </div>;

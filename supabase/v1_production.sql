@@ -8,6 +8,7 @@ alter table public.profiles add column if not exists rank_goal_start text;
 update public.profiles set rank_goal_start=current_rank where rank_goal_start is null and target_rank is not null and current_rank is not null;
 alter table public.training_routines add column if not exists youtube_url text;
 alter table public.live_sessions add column if not exists student_ids uuid[] not null default '{}'::uuid[];
+alter table public.live_sessions add column if not exists is_public boolean not null default false;
 update public.live_sessions set student_ids=array[student_id] where cardinality(student_ids)=0;
 alter table public.live_sessions drop constraint if exists live_sessions_student_ids_limit;
 alter table public.live_sessions add constraint live_sessions_student_ids_limit check(cardinality(student_ids) between 1 and 6);
@@ -302,14 +303,14 @@ drop trigger if exists guard_live_session_updates on public.live_sessions;
 create trigger guard_live_session_updates before update on public.live_sessions
 for each row execute function public.guard_live_session_updates();
 
--- Group room support: every listed student can read the room; coach remains the only owner.
+-- Group room support: listed students can read private rooms; active subscribers can read open classes.
 drop policy if exists live_sessions_read on public.live_sessions;
 create policy live_sessions_read on public.live_sessions for select
-using(student_id=auth.uid() or auth.uid()=any(student_ids) or coach_id=auth.uid() or public.is_coach());
+using(student_id=auth.uid() or auth.uid()=any(student_ids) or coach_id=auth.uid() or public.is_coach() or (is_public and status in ('scheduled','live') and exists(select 1 from public.profiles p where p.id=auth.uid() and p.role='student' and p.is_active and p.subscription_expires_at > now())));
 drop policy if exists live_sessions_owner_update on public.live_sessions;
 create policy live_sessions_owner_update on public.live_sessions for update
-using(student_id=auth.uid() or auth.uid()=any(student_ids) or coach_id=auth.uid() or public.is_coach())
-with check(student_id=auth.uid() or auth.uid()=any(student_ids) or coach_id=auth.uid() or public.is_coach());
+using(student_id=auth.uid() or auth.uid()=any(student_ids) or coach_id=auth.uid() or public.is_coach() or (is_public and status in ('scheduled','live') and exists(select 1 from public.profiles p where p.id=auth.uid() and p.role='student' and p.is_active and p.subscription_expires_at > now())))
+with check(student_id=auth.uid() or auth.uid()=any(student_ids) or coach_id=auth.uid() or public.is_coach() or (is_public and status in ('scheduled','live') and exists(select 1 from public.profiles p where p.id=auth.uid() and p.role='student' and p.is_active and p.subscription_expires_at > now())));
 
 drop policy if exists calendar_events_access on public.calendar_events;
 drop policy if exists calendar_events_v1_access on public.calendar_events;
