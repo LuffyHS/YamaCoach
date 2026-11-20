@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LoginForm } from "@/components/login-form";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { YamaLogo } from "@/components/yama-logo";
 import { isDesktopServerSide } from "@/lib/is-desktop";
 import { cookies, headers } from "next/headers";
 
@@ -19,7 +20,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       <main className="desktop-login-shell">
         <div className="desktop-login-card">
           <div className="desktop-login-brand">
-            <span className="desktop-login-mark"><svg width="28" height="28" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="30" fill="none" stroke="#10b981" stroke-width="6" /><path d="M50 8 V30 M50 70 V92 M8 50 H30 M70 50 H92" stroke="#10b981" stroke-width="6" stroke-linecap="round" /><circle cx="50" cy="50" r="5" fill="#f59e0b" /></svg></span>
+            <YamaLogo showWordmark={false} size="md" />
             <span className="desktop-login-name">YAMA <span>/COACH</span></span>
           </div>
           <LoginForm initialSignup={params?.mode === "signup"} />

@@ -109,11 +109,10 @@ export function LoginForm({ initialSignup = false }: { initialSignup?: boolean }
         <input required id="auth-email" type="email" name="email" maxLength={254} autoComplete="email" className="field" placeholder="voce@email.com" value={email} onChange={(event) => setEmail(event.target.value)} />
         <label className="label" htmlFor="auth-password">Senha</label>
         <input required minLength={8} maxLength={128} id="auth-password" type="password" name="password" autoComplete={signup ? "new-password" : "current-password"} className="field" placeholder="Mínimo 8 caracteres" />
-        {!signup && <label className="desktop-remember"><input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> Manter conectado</label>}
-        <button className="button primary" disabled={busy} style={{ width: "100%" }}>{busy ? "Aguarde…" : signup ? "Criar conta" : "Entrar"}</button>
+        {!signup && <div className="login-password-row"><label className="desktop-remember"><input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> Manter conectado</label><Link className="forgot-link" href="/forgot-password">Esqueci minha senha</Link></div>}
         {error && <div className="recovery-error" role="alert">{error}</div>}
         {notice && <div className="recovery-success" role="status">{notice}</div>}
-        {!signup && <Link className="forgot-link" href="/forgot-password">Esqueci minha senha</Link>}
+        <button className="button primary" disabled={busy} style={{ width: "100%" }}>{busy ? "Aguarde…" : signup ? "Criar conta" : "Entrar"}</button>
       </form>
       <button className="nav-link" onClick={() => { setSignup(!signup); setError(""); setNotice(""); }}>
         {signup ? "Já tenho uma conta" : "Criar conta de aluno"}

@@ -25,6 +25,14 @@ export function DesktopTitlebar() {
   );
 
   useEffect(() => {
+    if (desktop) {
+      document.body.classList.add("desktop-mode");
+    } else {
+      document.body.classList.remove("desktop-mode");
+    }
+  }, [desktop]);
+
+  useEffect(() => {
     if (!desktop || !window.yamaDesktop) return;
     const check = async () => {
       const m = await window.yamaDesktop!.isMaximized();
