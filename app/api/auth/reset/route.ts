@@ -1,0 +1,4 @@
+import {NextResponse} from "next/server";
+import {createClient} from "@/lib/supabase/server";
+import {isSupabaseConfigured} from "@/lib/env";
+export async function POST(request:Request){const body=await request.json().catch(()=>null);if(!body||typeof body.email!=="string"||body.email.length>254)return NextResponse.json({error:"Informe um e-mail válido."},{status:400});if(!isSupabaseConfigured())return NextResponse.json({error:"Recuperação de senha requer conexão Supabase."},{status:503});const supabase=await createClient();const origin=new URL(request.url).origin;const{error}=await supabase.auth.resetPasswordForEmail(body.email,{redirectTo:`${origin}/auth/callback?next=/auth/update-password`});if(error)return NextResponse.json({error:"Não foi possível enviar o e-mail. Confira as configurações de Auth no Supabase."},{status:400});return NextResponse.json({ok:true,message:"Se houver uma conta com esse e-mail, você receberá as instruções."})}

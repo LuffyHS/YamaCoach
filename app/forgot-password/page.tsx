@@ -1,0 +1,2 @@
+import Link from "next/link";import {Crosshair} from "lucide-react";import {ForgotPasswordForm} from "@/components/forgot-password-form";
+export default function ForgotPasswordPage(){return <main className="site login-page"><nav className="topnav"><Link href="/" className="brand login-brand"><Crosshair size={18}/> YAMA<span className="brand-muted">/COACH</span></Link><Link href="/login" className="nav-link">Voltar ao login</Link></nav><ForgotPasswordForm/></main>}

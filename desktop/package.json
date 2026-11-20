@@ -1,0 +1,24 @@
+{
+  "name": "yama-coach-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Aplicativo desktop do Yama Coach para Windows",
+  "main": "main.cjs",
+  "scripts": {
+    "dev": "electron .",
+    "build:win": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "^42.0.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "gg.yamacoach.desktop",
+    "productName": "Yama Coach",
+    "directories": { "output": "release" },
+    "files": ["main.cjs", "preload.cjs", "package.json"],
+    "extraResources": [{ "from": ".env.production", "to": "app.env" }],
+    "win": { "target": [{ "target": "nsis", "arch": ["x64"] }] },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true, "createStartMenuShortcut": true }
+  }
+}
