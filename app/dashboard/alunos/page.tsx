@@ -1,10 +1,10 @@
 /* eslint react-hooks/purity: off */
-import Link from "next/link";
 import { getSessionUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { BillingAdmin } from "@/components/billing-admin";
 import type { Coupon } from "@/lib/types";
+import { StudentsAdminList } from "@/components/students-admin-list";
 
 export default async function AlunosPage() {
   const user = await getSessionUser();
@@ -27,10 +27,6 @@ export default async function AlunosPage() {
     <div className="page-heading"><div><div className="billing-admin-kicker">GESTÃO DO COACH</div><h1>Alunos e pagamentos</h1><p>Gerencie acessos, acompanhe comprovantes e configure o plano.</p></div></div>
     <BillingAdmin monthlyPriceCents={monthlyPriceCents} coupons={coupons} />
     <section className="card section-gap"><h3 className="card-title">Fila Pix · {proofs.length} pendentes</h3>{proofs.length ? proofs.map(proof => <div className="student-row payment-approval-row" key={proof.id}><div className="student-info"><strong>{proof.profiles?.full_name || proof.profiles?.email || "Aluno"}</strong><small>{proof.coupon_code || "Sem cupom"} · {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((proof.amount_cents ?? monthlyPriceCents) / 100)} · {new Date(proof.created_at).toLocaleString("pt-BR")}</small></div>{proof.receipt_url && <a target="_blank" rel="noreferrer" className="button secondary" href={`/api/receipts?id=${encodeURIComponent(proof.id)}`}>Ver comprovante</a>}<form action="/api/payments" method="post" className="payment-review-actions"><input type="hidden" name="id" value={proof.id} /><button name="decision" value="approved" className="button primary">Aprovar 30 dias</button><button name="decision" value="rejected" className="button secondary">Rejeitar</button></form></div>) : <div className="empty">Nenhum pagamento aguardando aprovação.</div>}</section>
-    <section className="card section-gap"><h3 className="card-title">Alunos · {students.length}</h3>{students.length ? students.map(profile => {
-      const remainingDays = profile.subscription_expires_at ? Math.ceil((new Date(profile.subscription_expires_at).getTime() - Date.now()) / 86400000) : 0;
-      const status = profile.subscription_status === "active" && remainingDays > 0 ? "Ativo" : profile.subscription_status === "pending" ? "Em análise" : "Inativo";
-      return <Link className="student-row" href={`/dashboard/setup?student=${profile.id}`} key={profile.id}><span className="avatar">{profile.full_name?.[0] || "?"}</span><span className="student-info"><strong>{profile.full_name}</strong><small>{profile.email} · {profile.riot_id || "Riot ID não informado"} · {profile.current_rank || "—"} → {profile.target_rank || "—"} · {remainingDays > 0 ? `${remainingDays} dias restantes` : "Sem assinatura ativa"}</small></span><span className={`status ${status === "Ativo" ? "" : "pending"}`}>{status}</span></Link>;
-    }) : <div className="empty">Nenhum aluno cadastrado.</div>}</section>
+    <section className="card section-gap"><h3 className="card-title">Alunos · {students.length}</h3><StudentsAdminList students={students} pendingUserIds={proofs.map(proof => proof.user_id)} now={Date.now()} /></section>
   </main>;
 }

@@ -11,6 +11,7 @@ export type Profile = {
   email: string;
   full_name: string;
   role: Role;
+  initial_rank?: string | null;
   current_rank: string | null;
   target_rank: string | null;
   rank_goal_start?: string | null;

@@ -4,8 +4,9 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, CirclePlus, ExternalLink, Trash2, Video } from "lucide-react";
 import type { Profile, TrainingRoutine } from "@/lib/types";
+import { ValorantRankBadge } from "@/components/valorant-rank-badge";
 
-type Student = Pick<Profile, "id" | "full_name" | "current_rank">;
+type Student = Pick<Profile, "id" | "full_name" | "current_rank" | "target_rank">;
 const categoryLabels = { warmup: "Aquecimento", tdm: "TDM", aim: "Treino de mira", tactical: "Tático" };
 
 export function CoachTrainingManager({ students, routines: initialRoutines }: { students: Student[]; routines: TrainingRoutine[] }) {
@@ -44,7 +45,7 @@ export function CoachTrainingManager({ students, routines: initialRoutines }: { 
   }
 
   return <div className="coach-training-page">
-    <section className="card training-assignment-card"><div className="training-page-heading"><div><span className="training-kicker"><CirclePlus size={14} /> PLANO DE TREINO</span><h2>Atribuir rotina</h2><p>Organize exercícios e vídeos em tarefas que o aluno pode acompanhar no painel.</p></div><label className="label training-student-select">Aluno<select className="field" value={studentId} onChange={event => setStudentId(event.target.value)} disabled={!students.length}>{students.map(student => <option key={student.id} value={student.id}>{student.full_name}{student.current_rank ? ` · ${student.current_rank}` : ""}</option>)}</select></label></div>
+    <section className="card training-assignment-card"><div className="training-page-heading"><div><span className="training-kicker"><CirclePlus size={14} /> PLANO DE TREINO</span><h2>Atribuir rotina</h2><p>Organize exercícios e vídeos em tarefas que o aluno pode acompanhar no painel.</p></div><div className="training-student-select"><label className="label">Aluno<select className="field" value={studentId} onChange={event => setStudentId(event.target.value)} disabled={!students.length}>{students.map(student => <option key={student.id} value={student.id}>{student.full_name}{student.current_rank ? ` · ${student.current_rank}` : ""}</option>)}</select></label>{students.find(item => item.id === studentId) && <div className="training-selected-ranks"><ValorantRankBadge rank={students.find(item => item.id === studentId)?.current_rank} size="sm" /><span>→</span><ValorantRankBadge rank={students.find(item => item.id === studentId)?.target_rank} size="sm" /></div>}</div></div>
       {students.length ? <form className="training-assignment-form" onSubmit={createRoutine}><div className="training-form-grid"><label className="label">Nome do treino<input className="field" name="title" required maxLength={120} placeholder="Ex.: TDM focando primeiro disparo" /></label><label className="label">Categoria<select className="field" name="category" defaultValue="warmup"><option value="warmup">Aquecimento</option><option value="tdm">Lista de TDM</option><option value="aim">Treino de mira</option><option value="tactical">Exercício tático</option></select></label><label className="label">Data<input className="field" name="scheduled_for" type="date" /></label><label className="label training-video-field">Vídeo de referência no YouTube<input className="field" name="youtube_url" type="url" maxLength={500} placeholder="https://youtu.be/..." /></label><label className="label training-description-field">Orientações<textarea className="field" name="description" maxLength={1000} rows={3} placeholder="Explique o foco, duração ou como concluir a atividade…" /></label></div><button className="button primary" disabled={busy}>{busy ? "Enviando…" : "Atribuir ao aluno"}</button></form> : <div className="empty">Cadastre um aluno antes de montar uma rotina.</div>}
       {message && <div className="training-message" role="status">{message}</div>}
     </section>

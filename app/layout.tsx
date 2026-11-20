@@ -8,6 +8,7 @@ import "./landing.css";
 import "./download.css";
 import "./experience.css";
 import "./coach-dashboard.css";
+import "./valorant-polish.css";
 import { ServiceWorkerCleanup } from "@/components/pwa-register";
 
 export const metadata: Metadata = {

@@ -1,8 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { embedUrl } from "@/lib/youtube";
+import { embedUrl, youtubeId } from "@/lib/youtube";
 import type { Profile, Role, VodReview } from "@/lib/types";
+import { ValorantAgentAvatar } from "@/components/valorant-agent-avatar";
+import { Film, MousePointer2 } from "lucide-react";
+import Image from "next/image";
+import { AGENTS, MAPS } from "@/lib/ranks";
 
 type StudentOption = Pick<Profile, "id" | "full_name">;
 
@@ -10,6 +14,7 @@ export function VodWorkspace({ role, items, students }: { role: Role; items: Vod
   const [selected, setSelected] = useState(items[0]?.id || "");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<string>(AGENTS[0]);
   const item = items.find((entry) => entry.id === selected);
 
   async function send(event: React.FormEvent<HTMLFormElement>) {
@@ -35,15 +40,17 @@ export function VodWorkspace({ role, items, students }: { role: Role; items: Vod
     <div className="grid vod-layout">
       <div className="card">
         <h3 className="card-title">{role === "coach" ? "Fila de revisão" : "Suas partidas"}</h3>
-        {items.length ? items.map((entry) => <button key={entry.id} className="vod-row" style={{ width: "100%", background: "none", borderLeft: 0, borderRight: 0, borderBottom: 0, color: "inherit", textAlign: "left", cursor: "pointer" }} onClick={() => setSelected(entry.id)}>
-          <span className="student-info"><strong>{entry.map} · {entry.agent}</strong><small>{students.find((student) => student.id === entry.student_id)?.full_name}</small></span>
+        {items.length ? items.map((entry) => <button key={entry.id} className={`vod-row vod-select-row ${selected === entry.id ? "is-selected" : ""}`} onClick={() => setSelected(entry.id)}>
+          <span className="vod-thumbnail">{youtubeId(entry.student_youtube_url) ? <Image src={`https://img.youtube.com/vi/${youtubeId(entry.student_youtube_url)}/mqdefault.jpg`} alt="" fill sizes="76px" /> : <Film size={17} />}</span>
+          <span className="student-info"><strong>{entry.map || "Mapa não informado"}</strong><small>{students.find((student) => student.id === entry.student_id)?.full_name || (role === "student" ? "Sua partida" : "Aluno")}</small></span>
+          <span className="vod-entry-tags"><span className="vod-map-tag">{entry.map || "Mapa"}</span><span className="vod-agent-tag"><ValorantAgentAvatar name={entry.agent || "Agente"} size={20} />{entry.agent || "Agente"}</span></span>
           <span className={`status ${entry.status === "pending" ? "pending" : ""}`}>{entry.status === "pending" ? "Pendente" : "Revisada"}</span>
         </button>) : <div className="empty">{role === "coach" ? "Nenhuma VOD aguardando revisão." : "Nenhuma VOD enviada ainda."}</div>}
         {role === "student" && <form onSubmit={send}>
           <h3 className="card-title">Enviar partida</h3>
           <label className="label">Link não listado do YouTube<input name="url" type="url" maxLength={500} className="field" required placeholder="https://youtu.be/..." /></label>
-          <label className="label">Mapa<input name="map" maxLength={60} className="field" required placeholder="Mapa" /></label>
-          <label className="label">Agente<input name="agent" maxLength={60} className="field" required placeholder="Agente" /></label>
+          <label className="label">Mapa<select name="map" className="field" required defaultValue=""><option value="" disabled>Selecione o mapa</option>{MAPS.map(map => <option key={map} value={map}>{map}</option>)}</select></label>
+          <label className="label">Agente<select name="agent" className="field" required value={selectedAgent} onChange={event => setSelectedAgent(event.target.value)}>{AGENTS.map(agent => <option key={agent} value={agent}>{agent}</option>)}</select><span className="vod-agent-selected"><ValorantAgentAvatar name={selectedAgent} size={27} />{selectedAgent}</span></label>
           <button className="button primary" disabled={busy}>{busy ? "Enviando…" : "Enviar VOD"}</button>
         </form>}
       </div>
@@ -63,7 +70,7 @@ export function VodWorkspace({ role, items, students }: { role: Role; items: Vod
             <button className="button primary" disabled={busy}>{busy ? "Salvando…" : "Salvar revisão"}</button>
           </form>}
           {item.coach_notes && <div className="notice">{item.coach_notes}{item.recurring_errors && <><br /><b>Foco:</b> {item.recurring_errors}</>}</div>}
-        </> : <div className="empty">Selecione uma VOD ou envie sua primeira partida.</div>}
+        </> : <div className="vod-empty-state"><span><Film size={21} /></span><h3>Selecione uma VOD</h3><p>Abra uma partida da lista para assistir ao vídeo e consultar a análise.</p>{role === "student" && <div><MousePointer2 size={14} /> Envie sua primeira partida pelo formulário ao lado.</div>}</div>}
         {message && <div className="recovery-error" role="alert">{message}</div>}
       </div>
     </div>

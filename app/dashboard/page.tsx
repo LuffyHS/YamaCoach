@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { rankGoalPercent } from "@/lib/ranks";
+import { valorantRankProgress } from "@/lib/valorant-ranks";
 import { RoutineList } from "@/components/routine-list";
 import { CheckCircle2, ChevronRight, ShieldCheck, Users, Video } from "lucide-react";
 import type { Profile, TrainingRoutine, VodReview } from "@/lib/types";
+import { ValorantRankBadge } from "@/components/valorant-rank-badge";
 
 export default async function DashboardPage() {
   const user = await getSessionUser();
@@ -46,6 +47,7 @@ export default async function DashboardPage() {
   </main>;
 
   const completed = routines.filter((routine) => routine.is_completed).length;
+  const rankProgress = valorantRankProgress(user.initial_rank || user.rank_goal_start || currentRank, currentRank, user.target_rank);
   if (coach) {
     const activeStudents = students.filter((student) => student.is_active && student.subscription_status === "active" && Boolean(student.subscription_expires_at));
     const pendingVods = vods.filter((vod) => vod.status === "pending");
@@ -68,7 +70,7 @@ export default async function DashboardPage() {
             {activeStudents.length ? activeStudents.slice(0, 8).map((student) => <div className="coach-student-item" key={student.id}>
               <span className="coach-student-avatar">{student.full_name.split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase()}</span>
               <span className="coach-student-name"><b>{student.full_name}</b><small>{student.riot_id || student.email}</small></span>
-              <span className="coach-rank-pair"><b>{student.current_rank || "Elo pendente"}</b><span>→</span><b>{student.target_rank || "Meta não definida"}</b></span>
+              <span className="coach-rank-pair"><ValorantRankBadge rank={student.current_rank} size="sm" /><span>→</span><ValorantRankBadge rank={student.target_rank} size="sm" /></span>
               <span className="coach-student-status"><i /> Ativo</span>
               <Link className="coach-manage-link" href={`/dashboard/setup?student=${student.id}`}>Gerenciar <ChevronRight size={14} /></Link>
             </div>) : <div className="coach-empty-inline"><Users size={19} /><b>Nenhum aluno ativo no momento</b><span>Os alunos com acesso vigente aparecerão aqui.</span><Link href="/dashboard/alunos">Abrir gestão de alunos <ChevronRight size={14} /></Link></div>}
@@ -87,13 +89,13 @@ export default async function DashboardPage() {
       <div className="dashboard-heading-actions">{coach && <Link className="button primary" href="/dashboard/treinos">Atribuir treino</Link>}<Link className="button secondary" href="/dashboard/vods">VOD reviews</Link></div>
     </div>
     <div className="grid stats">
-      <div className="card"><div className="stat-label">{coach ? "Alunos" : "Patente atual"}</div><div className="stat-value">{coach ? students.length : currentRank || "—"}</div><div className="stat-note">{coach ? "cadastrados" : `Meta: ${user.target_rank || "não definida"}`}</div></div>
+      <div className="card"><div className="stat-label">{coach ? "Alunos" : "Patente atual"}</div><div className="stat-value">{coach ? students.length : <ValorantRankBadge rank={currentRank} size="lg" />}</div><div className="stat-note">{coach ? "cadastrados" : <>Meta: <ValorantRankBadge rank={user.target_rank} size="sm" /></>}</div></div>
       <div className="card"><div className="stat-label">Treinos concluídos</div><div className="stat-value">{completed}/{routines.length}</div></div>
       <div className="card"><div className="stat-label">VODs pendentes</div><div className="stat-value">{vods.filter((vod) => vod.status === "pending").length}</div></div>
       <div className="card"><div className="stat-label">Acesso</div><div className="stat-value" style={{ fontSize: 18 }}>{user.subscription_status || (user.is_active ? "Ativo" : "Inativo")}</div></div>
     </div>
     {!coach && <>
-      <div className="card rank-goal-card section-gap"><div className="rank-goal-heading"><div><span className="stat-label">MISSÃO DE ELO</span><h3>{currentRank || "Elo atual pendente"} <span>→</span> {user.target_rank || "Meta não definida"}</h3></div><strong>{rankGoalPercent(currentRank, user.target_rank, user.rank_goal_start ?? currentRank)}%</strong></div><div className="progress"><i style={{ width: `${rankGoalPercent(currentRank, user.target_rank, user.rank_goal_start ?? currentRank)}%` }} /></div><small className="rank-goal-caption">{user.target_rank ? "O progresso acompanha as atualizações de elo no seu perfil." : "Peça ao coach para definir seu objetivo de elo."}</small></div>
+      <div className="card rank-goal-card section-gap"><div className="rank-goal-heading"><div><span className="stat-label">MISSÃO DE ELO</span><div className="rank-mission-stages"><div><small>INÍCIO</small><ValorantRankBadge rank={user.initial_rank || user.rank_goal_start || currentRank} size="sm" /></div><span className="rank-mission-arrow">→</span><div className="rank-stage-current"><small>ATUAL</small><ValorantRankBadge rank={currentRank} size="lg" /></div><span className="rank-mission-arrow">→</span><div><small>META</small><ValorantRankBadge rank={user.target_rank} size="sm" /></div></div></div><strong>{rankProgress}%</strong></div><div className="progress rank-mission-progress"><i style={{ width: `${rankProgress}%` }} /></div><small className="rank-goal-caption">{user.target_rank ? "Progresso calculado entre o elo inicial e a meta definida pelo coach." : "Peça ao coach para definir seu objetivo de elo."}</small></div>
       {user.recurring_errors && <div className="notice"><b>Pontos de atenção</b><br />{user.recurring_errors}</div>}
     </>}
     <div className="grid split">

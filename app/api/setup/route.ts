@@ -20,6 +20,8 @@ const coachSchema = z.object({
   setup: setupSchema.optional(),
   tracker_url: z.string().max(500).optional().default(""),
   riot_id: z.string().trim().max(80).optional().default(""),
+  initial_rank: z.string().max(60).optional().default(""),
+  current_rank: z.string().max(60).optional().default(""),
   target_rank: z.string().max(60).optional().default(""),
   recurring_errors: z.string().max(4000).optional().default(""),
 });
@@ -52,12 +54,12 @@ export async function POST(request: Request) {
   }
 
   const parsed = coachSchema.safeParse(raw);
-  if (!parsed.success || !trackerUrlIsValid(parsed.data?.tracker_url || "") || (parsed.data?.target_rank && !isRank(parsed.data.target_rank))) return NextResponse.json({ error: "Confira a meta de patente e o link do Tracker.gg." }, { status: 400 });
+  if (!parsed.success || !trackerUrlIsValid(parsed.data?.tracker_url || "") || [parsed.data?.initial_rank, parsed.data?.current_rank, parsed.data?.target_rank].some(rank => Boolean(rank && !isRank(rank)))) return NextResponse.json({ error: "Confira os elos selecionados e o link do Tracker.gg." }, { status: 400 });
   const { data: student, error: studentError } = await supabase.from("profiles")
-    .select("id,current_rank,target_rank,rank_goal_start").eq("id", parsed.data.student_id).eq("role", "student").maybeSingle();
+    .select("id,initial_rank,current_rank,target_rank,rank_goal_start").eq("id", parsed.data.student_id).eq("role", "student").maybeSingle();
   if (studentError) return NextResponse.json({ error: "Não foi possível localizar o aluno." }, { status: 500 });
   if (!student) return NextResponse.json({ error: "Aluno não encontrado." }, { status: 404 });
-  let baselineRank = student.current_rank;
+  let baselineRank = parsed.data.initial_rank || student.initial_rank || student.current_rank;
   if (!baselineRank && parsed.data.target_rank) {
     const { data: previousRank } = await supabase.from("rank_history").select("rank").eq("student_id", student.id).order("recorded_at", { ascending: false }).limit(1).maybeSingle();
     baselineRank = previousRank?.rank ?? null;
@@ -67,11 +69,18 @@ export async function POST(request: Request) {
     ...(parsed.data.setup ? { setup: parsed.data.setup } : {}),
     tracker_url: parsed.data.tracker_url || null,
     riot_id: parsed.data.riot_id || null,
+    initial_rank: parsed.data.initial_rank || null,
+    current_rank: parsed.data.current_rank || student.current_rank,
     target_rank: nextTarget,
-    rank_goal_start: nextTarget !== student.target_rank ? (nextTarget ? baselineRank : null) : student.rank_goal_start,
+    rank_goal_start: nextTarget !== student.target_rank || parsed.data.initial_rank !== student.initial_rank ? (nextTarget ? baselineRank : null) : student.rank_goal_start,
     recurring_errors: parsed.data.recurring_errors,
   };
   const { error } = await supabase.from("profiles").update(update).eq("id", student.id).eq("role", "student");
   if (error) return NextResponse.json({ error: "Não foi possível salvar as metas do aluno." }, { status: 500 });
+  const nextCurrent = parsed.data.current_rank || student.current_rank;
+  if (nextCurrent && nextCurrent !== student.current_rank) {
+    const { error: historyError } = await supabase.from("rank_history").insert({ student_id: student.id, rank: nextCurrent });
+    if (historyError) return NextResponse.json({ error: "Ficha salva, mas não foi possível registrar o histórico de elo." }, { status: 500 });
+  }
   return NextResponse.json({ ok: true });
 }

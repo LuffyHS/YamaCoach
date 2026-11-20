@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/types";
 
 const profileColumns =
-  "id, email, full_name, role, current_rank, target_rank, rank_goal_start, coach_id, is_active, subscription_expires_at, created_at, setup, recurring_errors";
+  "id, email, full_name, role, initial_rank, current_rank, target_rank, rank_goal_start, coach_id, is_active, subscription_expires_at, created_at, setup, recurring_errors, riot_id, subscription_status";
 
 export async function getSessionUser(): Promise<Profile | null> {
   if (!isSupabaseConfigured()) return null;

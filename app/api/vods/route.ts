@@ -3,11 +3,12 @@ import { z } from "zod";
 import { getSessionUser } from "@/lib/auth/session";
 import { embedUrl } from "@/lib/youtube";
 import { createClient } from "@/lib/supabase/server";
+import { AGENTS, MAPS } from "@/lib/ranks";
 
 const submissionSchema = z.object({
   url: z.string().url().max(500),
-  map: z.string().trim().min(1).max(60),
-  agent: z.string().trim().min(1).max(60),
+  map: z.enum(MAPS),
+  agent: z.enum(AGENTS),
 });
 const reviewSchema = z.object({
   id: z.string().uuid(),

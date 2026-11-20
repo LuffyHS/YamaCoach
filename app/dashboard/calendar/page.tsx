@@ -1,3 +1,4 @@
+/* eslint react-hooks/purity: off */
 import { getSessionUser } from "@/lib/auth/session";
 import { CalendarView } from "@/components/calendar-view";
 import { createClient } from "@/lib/supabase/server";
@@ -21,6 +22,6 @@ export default async function CalendarPage() {
 
   return <main className="content">
     <div className="page-heading"><div><h1>Calendário</h1><p>Compromissos compartilhados entre coach e aluno.</p></div></div>
-    <CalendarView events={(eventData ?? []) as CalendarEvent[]} students={(studentData ?? []) as Pick<Profile, "id" | "full_name">[]} coach={user.role === "coach"} />
+    <CalendarView events={(eventData ?? []) as CalendarEvent[]} students={(studentData ?? []) as Pick<Profile, "id" | "full_name">[]} coach={user.role === "coach"} now={Date.now()} />
   </main>;
 }

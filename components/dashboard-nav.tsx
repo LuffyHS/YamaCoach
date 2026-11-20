@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { CalendarDays, Crosshair, Dumbbell, LayoutDashboard, LogOut, Menu, Radio, Settings, Users, Video, X } from "lucide-react";
 import type { Role } from "@/lib/types";
+import { ValorantRankBadge } from "@/components/valorant-rank-badge";
 
 const workLinks = [
   { href: "/dashboard/vods", label: "VOD Review", icon: Video },
@@ -13,7 +14,7 @@ const workLinks = [
   { href: "/dashboard/setup", label: "Ficha técnica", icon: Settings },
 ];
 
-export function DashboardNav({ role, name }: { role: Role; name: string }) {
+export function DashboardNav({ role, name, rank, pendingVods = 0, pendingPayments = 0 }: { role: Role; name: string; rank?: string | null; pendingVods?: number; pendingPayments?: number }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
@@ -24,12 +25,12 @@ export function DashboardNav({ role, name }: { role: Role; name: string }) {
     {open && <button className="nav-backdrop" aria-label="Fechar menu" onClick={close} />}
     <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
       <Link href="/" className="brand side-brand" onClick={close}>
-        <span className="brand-mark"><Crosshair size={18} /></span>YAMA<span className="brand-muted">/COACH</span>
+        <span className="brand-mark"><Crosshair size={18} /></span>YAMA<span className="brand-muted">/{role === "coach" ? "COACH" : "PLAYER"}</span>
       </Link>
 
       <div className="side-profile">
         <span className="avatar">{name.slice(0, 1).toUpperCase()}</span>
-        <span><b>{name}</b><small>{role === "coach" ? "Coach workspace" : "Player workspace"}</small></span>
+        <span className="side-profile-copy"><b>{name}</b><small>{role === "coach" ? "Coach workspace" : "Player workspace"}{role === "student" && <ValorantRankBadge rank={rank} size="sm" />}</small></span>
         <i className="online-dot" />
       </div>
 
@@ -40,7 +41,7 @@ export function DashboardNav({ role, name }: { role: Role; name: string }) {
         </Link>
         <div className="workspace navigation-section-label">ACOMPANHAMENTO</div>
         {workLinks.map(({ href, label, icon: Icon }) => <Link key={href} href={href} onClick={close} className={`side-link ${isActive(href) ? "active" : ""}`}>
-          <Icon size={17} />{label}
+          <Icon size={17} />{label}{href === "/dashboard/vods" && pendingVods > 0 && <span className="side-count side-count-amber">{pendingVods}</span>}
         </Link>)}
         {role === "coach" && <>
           <div className="workspace navigation-section-label">GESTÃO</div>
@@ -48,7 +49,7 @@ export function DashboardNav({ role, name }: { role: Role; name: string }) {
             <Dumbbell size={17} />Treinos dos alunos
           </Link>
           <Link href="/dashboard/alunos" onClick={close} className={`side-link ${isActive("/dashboard/alunos") ? "active" : ""}`}>
-            <Users size={17} />Alunos e pagamentos
+            <Users size={17} />Alunos e pagamentos{pendingPayments > 0 && <span className="side-count">{pendingPayments}</span>}
           </Link>
         </>}
       </nav>

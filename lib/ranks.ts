@@ -66,6 +66,11 @@ export const AGENTS = [
   "Killjoy",
   "Chamber",
   "Vyse",
+  "Tejo",
+  "Waylay",
+  "Veto",
+  "Hush",
+  "Miks",
 ] as const;
 
 export const CATEGORY_LABEL = {

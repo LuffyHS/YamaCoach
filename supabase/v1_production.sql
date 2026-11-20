@@ -5,6 +5,8 @@ alter table public.profiles add column if not exists recurring_errors text not n
 alter table public.profiles add column if not exists subscription_status text not null default 'inactive';
 alter table public.profiles add column if not exists tracker_url text;
 alter table public.profiles add column if not exists rank_goal_start text;
+alter table public.profiles add column if not exists initial_rank text;
+update public.profiles set initial_rank=current_rank where initial_rank is null and current_rank is not null;
 update public.profiles set rank_goal_start=current_rank where rank_goal_start is null and target_rank is not null and current_rank is not null;
 alter table public.training_routines add column if not exists youtube_url text;
 alter table public.live_sessions add column if not exists student_ids uuid[] not null default '{}'::uuid[];
@@ -180,7 +182,10 @@ create or replace function public.guard_profile_updates() returns trigger
 language plpgsql security invoker set search_path=public
 as $$
 begin
-  if auth.uid() is null or public.is_coach() then return new; end if;
+  if auth.uid() is null or public.is_coach() then
+    if new.initial_rank is null and new.current_rank is not null then new.initial_rank = new.current_rank; end if;
+    return new;
+  end if;
   if auth.uid() <> old.id
     or new.id is distinct from old.id
     or new.email is distinct from old.email
@@ -190,12 +195,17 @@ begin
     or new.subscription_status is distinct from old.subscription_status
     or new.subscription_expires_at is distinct from old.subscription_expires_at
     or new.target_rank is distinct from old.target_rank
+    or new.initial_rank is distinct from old.initial_rank
     or new.rank_goal_start is distinct from old.rank_goal_start
     or new.recurring_errors is distinct from old.recurring_errors
   then raise exception 'profile fields require coach authorization'; end if;
   if new.current_rank is not null and new.current_rank not in ('Ferro 1','Ferro 2','Ferro 3','Bronze 1','Bronze 2','Bronze 3','Prata 1','Prata 2','Prata 3','Ouro 1','Ouro 2','Ouro 3','Platina 1','Platina 2','Platina 3','Diamante 1','Diamante 2','Diamante 3','Ascendente 1','Ascendente 2','Ascendente 3','Imortal 1','Imortal 2','Imortal 3','Radiante') then
     raise exception 'invalid current rank';
   end if;
+  if new.initial_rank is not null and new.initial_rank not in ('Ferro 1','Ferro 2','Ferro 3','Bronze 1','Bronze 2','Bronze 3','Prata 1','Prata 2','Prata 3','Ouro 1','Ouro 2','Ouro 3','Platina 1','Platina 2','Platina 3','Diamante 1','Diamante 2','Diamante 3','Ascendente 1','Ascendente 2','Ascendente 3','Imortal 1','Imortal 2','Imortal 3','Radiante') then
+    raise exception 'invalid initial rank';
+  end if;
+  if new.initial_rank is null and new.current_rank is not null then new.initial_rank = new.current_rank; end if;
   return new;
 end
 $$;
@@ -314,10 +324,10 @@ with check(student_id=auth.uid() or auth.uid()=any(student_ids) or coach_id=auth
 
 drop policy if exists live_session_channels_read on realtime.messages;
 create policy live_session_channels_read on realtime.messages for select to authenticated
-using(extension in ('broadcast','presence') and exists(select 1 from public.live_sessions ls where ls.id::text=substring((select realtime.topic()) from 14) and (ls.coach_id=(select auth.uid()) or (not ls.is_public and (ls.student_id=(select auth.uid()) or (select auth.uid())=any(ls.student_ids)) and exists(select 1 from public.profiles p where p.id=(select auth.uid()) and p.role='student' and p.is_active and p.subscription_expires_at>now())) or (ls.is_public and ls.status in ('scheduled','live') and exists(select 1 from public.profiles p where p.id=(select auth.uid()) and p.role='student' and p.is_active and p.subscription_expires_at>now())))));
+using(extension in ('broadcast','presence') and exists(select 1 from public.live_sessions ls where ls.id::text=split_part(substring((select realtime.topic()) from 14),'-board',1) and (ls.coach_id=(select auth.uid()) or (not ls.is_public and (ls.student_id=(select auth.uid()) or (select auth.uid())=any(ls.student_ids)) and exists(select 1 from public.profiles p where p.id=(select auth.uid()) and p.role='student' and p.is_active and p.subscription_expires_at>now())) or (ls.is_public and ls.status in ('scheduled','live') and exists(select 1 from public.profiles p where p.id=(select auth.uid()) and p.role='student' and p.is_active and p.subscription_expires_at>now())))));
 drop policy if exists live_session_channels_write on realtime.messages;
 create policy live_session_channels_write on realtime.messages for insert to authenticated
-with check(extension in ('broadcast','presence') and exists(select 1 from public.live_sessions ls where ls.id::text=substring((select realtime.topic()) from 14) and (ls.coach_id=(select auth.uid()) or (not ls.is_public and (ls.student_id=(select auth.uid()) or (select auth.uid())=any(ls.student_ids)) and exists(select 1 from public.profiles p where p.id=(select auth.uid()) and p.role='student' and p.is_active and p.subscription_expires_at>now())) or (ls.is_public and ls.status in ('scheduled','live') and exists(select 1 from public.profiles p where p.id=(select auth.uid()) and p.role='student' and p.is_active and p.subscription_expires_at>now())))));
+with check(extension in ('broadcast','presence') and exists(select 1 from public.live_sessions ls where ls.id::text=split_part(substring((select realtime.topic()) from 14),'-board',1) and (ls.coach_id=(select auth.uid()) or (not ls.is_public and (ls.student_id=(select auth.uid()) or (select auth.uid())=any(ls.student_ids)) and exists(select 1 from public.profiles p where p.id=(select auth.uid()) and p.role='student' and p.is_active and p.subscription_expires_at>now())) or (ls.is_public and ls.status in ('scheduled','live') and exists(select 1 from public.profiles p where p.id=(select auth.uid()) and p.role='student' and p.is_active and p.subscription_expires_at>now())))));
 
 drop policy if exists calendar_events_access on public.calendar_events;
 drop policy if exists calendar_events_v1_access on public.calendar_events;

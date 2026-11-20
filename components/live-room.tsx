@@ -4,9 +4,11 @@ import { useMemo, useState } from "react";
 import { ArrowUpRight, CalendarClock, CirclePlus, Radio, Trash2, Users, X } from "lucide-react";
 import type { LiveSession, Profile } from "@/lib/types";
 import { StreamRoom } from "@/components/stream-room";
+import { LiveTacticalPanel } from "@/components/live-tactical-panel";
+import { ValorantRankBadge } from "@/components/valorant-rank-badge";
 
 type SessionUser = Pick<Profile, "id" | "role" | "full_name">;
-type StudentOption = Pick<Profile, "id" | "full_name">;
+type StudentOption = Pick<Profile, "id" | "full_name" | "current_rank" | "target_rank">;
 
 export function LiveRoom({ user, sessions, students = [] }: { user: SessionUser; sessions: LiveSession[]; students?: StudentOption[] }) {
   const activeSessions = useMemo(() => sessions.filter(s => s.status !== "ended"), [sessions]);
@@ -103,7 +105,7 @@ export function LiveRoom({ user, sessions, students = [] }: { user: SessionUser;
         <form className="live-create-form" onSubmit={create}>
           <label className={`live-public-room-option ${isPublicRoom ? "is-selected" : ""}`}><input type="checkbox" checked={isPublicRoom} onChange={event => setIsPublicRoom(event.target.checked)} /><span><b>Aula pública da turma</b><small>Qualquer aluno com assinatura ativa pode entrar. Limite de 20 participantes.</small></span></label>
           {!isPublicRoom && <div className="live-student-picker"><div className="live-picker-label"><span>Participantes</span><small>{selectedStudents.length} selecionados · até 6</small></div>
-            <div className="live-student-options">{students.map(student => <label key={student.id} className={`live-student-option ${selectedStudents.includes(student.id) ? "is-selected" : ""}`}><input type="checkbox" checked={selectedStudents.includes(student.id)} onChange={() => toggleStudent(student.id)} /><span>{student.full_name.slice(0, 1).toUpperCase()}</span>{student.full_name}</label>)}</div>
+            <div className="live-student-options">{students.map(student => <label key={student.id} className={`live-student-option ${selectedStudents.includes(student.id) ? "is-selected" : ""}`}><input type="checkbox" checked={selectedStudents.includes(student.id)} onChange={() => toggleStudent(student.id)} /><span className="live-student-avatar">{student.full_name.slice(0, 1).toUpperCase()}</span><span className="live-student-name">{student.full_name}<small><ValorantRankBadge rank={student.current_rank} size="sm" /></small></span></label>)}</div>
             {!students.length && <small>Nenhum aluno cadastrado ainda.</small>}
           </div>}
           <div className="live-create-fields"><label className="label">Título<input name="title" required maxLength={120} className="field" placeholder={isPublicRoom ? "Aula aberta da turma" : "Revisão de VOD em grupo"} /></label>{isPublicRoom ? <p className="live-public-start-note">A sala será aberta imediatamente para alunos com acesso ativo.</p> : <label className="label">Data e hora<input name="scheduled_at" type="datetime-local" required className="field" /></label>}<label className="label">Link adicional (opcional)<input name="url" type="url" maxLength={500} className="field" placeholder="https://" /></label></div>
@@ -114,13 +116,14 @@ export function LiveRoom({ user, sessions, students = [] }: { user: SessionUser;
     </section>
 
     {session ? <>
-      <StreamRoom key={session.id} sessionId={session.id} userId={user.id} userName={user.full_name} coach={user.role === "coach"} publicRoom={Boolean(session.is_public)} participants={participantList} />
+      <div className="live-session-stage-grid"><StreamRoom key={session.id} sessionId={session.id} userId={user.id} userName={user.full_name} coach={user.role === "coach"} publicRoom={Boolean(session.is_public)} participants={participantList} /><LiveTacticalPanel key={`board-${session.id}`} sessionId={session.id} userId={user.id} notes={notes} canEditNotes={user.role === "coach" || !session.is_public} busy={busy} onNotesChange={setNotes} onSaveNotes={() => void save()} /></div>
       <section className="live-session-details">
         <div className="live-details-heading"><div><div className="live-page-kicker">{session.status === "ended" ? "SESSÃO ENCERRADA" : "SESSÃO SELECIONADA"}</div><h2>{session.title}</h2></div><span className="live-session-id"><CalendarClock size={13} />{new Date(session.scheduled_at).toLocaleString("pt-BR", { dateStyle: "medium", timeStyle: "short" })}</span></div>
         <div className="grid split live-details-grid"><section className="card"><h3 className="card-title">Informações da sala</h3><p className="live-participant-names"><Users size={15} />{session.is_public ? "Aberta para alunos com assinatura ativa" : selectedNames.length ? selectedNames.join(", ") : "Participantes da sessão"}</p>
           {user.role === "coach" && <><label className="label">Título<input className="field" maxLength={120} value={title} onChange={e => setTitle(e.target.value)} /></label><label className="label">Link adicional<input className="field" type="url" maxLength={500} value={url} onChange={e => setUrl(e.target.value)} /></label><div className="live-session-actions"><button className="button secondary" onClick={() => void save()} disabled={busy}>Salvar alterações</button>{session.status !== "ended" && <button className="button live-end-button" onClick={() => void endSession()} disabled={busy}><X size={14} /> Encerrar sala</button>}</div></>}
           {session.stream_url && <a className="live-extra-link" href={session.stream_url} target="_blank" rel="noreferrer">Abrir link adicional <ArrowUpRight size={14} /></a>}
-        </section><section className="card"><h3 className="card-title">Notas compartilhadas</h3>{user.role === "coach" || !session.is_public ? <><textarea className="field" rows={8} maxLength={5000} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Anote os principais pontos desta sessão…" /><button className="button primary" onClick={() => void save()} disabled={busy}>{busy ? "Salvando…" : "Salvar notas"}</button></> : <div className="live-public-notes">{notes || "O coach ainda não publicou anotações para esta aula."}</div>}{message && <div className="toast" role="status">{message}</div>}</section></div>
+        </section></div>
+        {message && <div className="toast" role="status">{message}</div>}
       </section>
     </> : <div className="live-empty-banner"><div className="live-empty-icon"><Radio size={20} /></div><div><b>Nenhuma sala selecionada</b><span>{user.role === "coach" ? "Crie uma sala e escolha um ou mais alunos para começar." : "Quando houver uma sessão agendada, ela aparecerá aqui."}</span></div></div>}
   </div>;
