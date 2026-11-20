@@ -34,7 +34,8 @@ jobs:
           if ($target.Scheme -ne "https") { throw "YAMA_APP_URL must use HTTPS." }
           Set-Content -Path desktop/.env.production -Value "YAMA_APP_URL=$env:YAMA_APP_URL" -NoNewline
       - name: Build and publish Windows installer
-        run: npm run build:win -- --publish always
+        run: npx electron-builder --win nsis --publish always
         working-directory: desktop
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
