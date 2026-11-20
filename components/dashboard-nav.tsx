@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSyncExternalStore, useState } from "react";
-import { CalendarDays, Crosshair, Dumbbell, LayoutDashboard, LogOut, Menu, Radio, Settings, Users, Video, X } from "lucide-react";
+import { CalendarDays, Dumbbell, LayoutDashboard, LogOut, Menu, Radio, Settings, Users, Video, X } from "lucide-react";
 import type { Role } from "@/lib/types";
 import { ValorantRankBadge } from "@/components/valorant-rank-badge";
+import { YamaLogo } from "@/components/yama-logo";
 import { isDesktopClient } from "@/lib/is-desktop";
 
 const workLinks = [
@@ -31,7 +32,7 @@ export function DashboardNav({ role, name, rank, pendingVods = 0, pendingPayment
     {open && <button className="nav-backdrop" aria-label="Fechar menu" onClick={close} />}
     <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
       <Link href={desktop ? "/dashboard" : "/"} className="brand side-brand" onClick={close}>
-        <span className="brand-mark"><Crosshair size={18} /></span>YAMA<span className="brand-muted">/{role === "coach" ? "COACH" : "PLAYER"}</span>
+        <YamaLogo showWordmark={false} size="sm" />YAMA<span className="brand-muted">/{role === "coach" ? "COACH" : "PLAYER"}</span>
       </Link>
 
       <div className="side-profile">

@@ -32,6 +32,7 @@ function createSplash() {
     skipTaskbar: true,
     backgroundColor: BRAND_COLOR,
     title: "Yama Coach",
+    icon: path.join(__dirname, "assets", "icon.ico"),
     webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   void window.loadFile(SPLASH_PATH);
@@ -66,6 +67,7 @@ function createWindow(appUrl) {
     show: false,
     backgroundColor: BRAND_COLOR,
     title: "Yama Coach",
+    icon: path.join(__dirname, "assets", "icon.ico"),
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),

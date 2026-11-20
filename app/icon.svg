@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Yama Coach">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0D1115" />
+      <stop offset="100%" stop-color="#07090B" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)" />
+  <rect x="1" y="1" width="62" height="62" rx="13" fill="none" stroke="#10B981" stroke-opacity="0.2" />
+  <!-- Y -->
+  <path d="M4 6 L14 6 L26 28 L18 28 Z" fill="#10B981" />
+  <path d="M40 6 L50 6 L32 28 L24 28 Z" fill="#10B981" />
+  <path d="M22 26 L32 26 L32 52 L22 52 Z" fill="#10B981" />
+  <!-- C -->
+  <path d="M44 8 L56 8 L60 12 L60 52 L56 56 L44 56 L44 48 L52 48 L54 46 L54 18 L52 16 L44 16 Z" fill="#F8FAFC" />
+  <!-- Radiant star -->
+  <path d="M32 0 L34.5 4.5 L39 7 L34.5 9.5 L32 14 L29.5 9.5 L25 7 L29.5 4.5 Z" fill="#F59E0B" />
+  <circle cx="32" cy="7" r="1.6" fill="#F8FAFC" />
+</svg>

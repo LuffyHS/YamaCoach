@@ -12,12 +12,13 @@ Defina `YAMA_APP_URL` no ambiente para apontar o app a outra URL durante o desen
 
 ## Identidade visual do instalador
 
-Os recursos do instalador ficam em `desktop/build/`:
+Os recursos do instalador ficam em `desktop/`:
 
-- `icon.ico` — ícone do aplicativo, do instalador e do desinstalador.
-- `installerHeader.bmp` — faixa superior exibida nas páginas do instalador.
-- `installerSidebar.bmp` — painel lateral das páginas de boas-vindas e conclusão.
-- `installer.nsh` — tema escuro, textos de marca e instalação por usuário.
+- `assets/icon.ico` — ícone multi-resolução (16/32/48/64/128/256) do aplicativo, instalador e desinstalador.
+- `assets/icon.png` (512×512) e `assets/icon-256.png` — ícones PNG de alta resolução.
+- `build/installerHeader.bmp` — faixa superior exibida nas páginas do instalador (150×57).
+- `build/installerSidebar.bmp` — painel lateral das páginas de boas-vindas e conclusão (164×314).
+- `build/installer.nsh` — tema escuro, textos de marca e instalação por usuário.
 
 Para recriar os bitmaps e o ícone após mudar o design, rode `npm run assets` em `desktop/`. Os arquivos gerados já são commitados; a CI usa esses binários no empacotamento.
 
