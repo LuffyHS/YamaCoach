@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Yama Coach</title>
+  <style>
+    :root {
+      --bg: #07090b;
+      --panel: #0d1115;
+      --emerald: #10b981;
+      --emerald-soft: #34d399;
+      --amber: #f59e0b;
+      --text: #e7edf0;
+      --muted: #7b8a83;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+      overflow: hidden;
+    }
+    body {
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 50% 42%, rgba(16, 185, 129, 0.16) 0%, rgba(16, 185, 129, 0.04) 34%, transparent 62%),
+        var(--bg);
+    }
+    .splash {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      text-align: center;
+      padding: 24px;
+    }
+    .logo {
+      position: relative;
+      width: 92px;
+      height: 92px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(16, 185, 129, 0.28);
+      border-radius: 24px;
+      background: linear-gradient(145deg, #0d1115 0%, #07090b 78%);
+      box-shadow: 0 22px 60px rgba(0, 0, 0, 0.5), inset 0 0 30px rgba(16, 185, 129, 0.06);
+    }
+    .logo::before {
+      content: "";
+      position: absolute;
+      inset: 12px;
+      border: 1px solid rgba(16, 185, 129, 0.1);
+      border-radius: 16px;
+    }
+    .logo svg { display: block; }
+    .mark {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.34em;
+      text-indent: 0.34em;
+      color: var(--text);
+    }
+    .mark span { color: var(--emerald); }
+    .tagline {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.3em;
+      text-indent: 0.3em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .status {
+      margin-top: 10px;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      color: #9fb0a8;
+    }
+    .track {
+      width: 180px;
+      height: 3px;
+      margin-top: 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+    .bar {
+      width: 38%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--emerald) 0%, var(--emerald-soft) 55%, var(--amber) 130%);
+      animation: slide 1.4s ease-in-out infinite;
+    }
+    .version {
+      position: absolute;
+      bottom: 16px;
+      right: 18px;
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      color: #59675f;
+    }
+    @keyframes slide {
+      0% { transform: translateX(-110%); }
+      100% { transform: translateX(320%); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.55; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.05); }
+    }
+    .logo svg { animation: pulse 2.6s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+  <main class="splash">
+    <div class="logo">
+      <svg width="46" height="46" viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="30" fill="none" stroke="#10b981" stroke-width="5" />
+        <path d="M50 8 V30 M50 70 V92 M8 50 H30 M70 50 H92" stroke="#10b981" stroke-width="5" stroke-linecap="round" />
+        <circle cx="50" cy="50" r="5" fill="#f59e0b" />
+      </svg>
+    </div>
+    <div class="mark">YAMA <span>COACH</span></div>
+    <div class="tagline">Valorant Coaching</div>
+    <div class="status">Preparando seu ambiente…</div>
+    <div class="track"><div class="bar"></div></div>
+    <div class="version">YAMA COACH · 1.0.0</div>
+  </main>
+</body>
+</html>

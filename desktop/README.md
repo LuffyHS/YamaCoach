@@ -10,8 +10,25 @@ O Yama Coach instala como um programa Windows (.exe), com atalho no Desktop e no
 
 Defina `YAMA_APP_URL` no ambiente para apontar o app a outra URL durante o desenvolvimento.
 
+## Identidade visual do instalador
+
+Os recursos do instalador ficam em `desktop/build/`:
+
+- `icon.ico` — ícone do aplicativo, do instalador e do desinstalador.
+- `installerHeader.bmp` — faixa superior exibida nas páginas do instalador.
+- `installerSidebar.bmp` — painel lateral das páginas de boas-vindas e conclusão.
+- `installer.nsh` — tema escuro, textos de marca e instalação por usuário.
+
+Para recriar os bitmaps e o ícone após mudar o design, rode `npm run assets` em `desktop/`. Os arquivos gerados já são commitados; a CI usa esses binários no empacotamento.
+
 ## Instalador Windows
+
+O fluxo do instalador é: boas-vindas → progresso → conclusão. A página de escolha “todos os usuários / apenas para mim” foi removida e a instalação é feita apenas para o usuário atual, sem pedido de administrador.
 
 O workflow `.github/workflows/windows-desktop.yml` compila o instalador para Windows e publica o `.exe` em uma release do GitHub ao atualizar a versão desktop.
 
 Para compilar manualmente, crie `.env.production` baseado em `.env.example`, use o endereço HTTPS do serviço publicado em `YAMA_APP_URL`, instale as dependências em `desktop/` e rode `npm run build:win`. O instalador NSIS será gerado em `desktop/release/`.
+
+## Launcher
+
+O `main.cjs` abre uma splash escura da marca enquanto o serviço carrega, usa `requestSingleInstanceLock` para evitar duas instâncias e define o App User Model ID para a barra de tarefas do Windows.
