@@ -1,14 +1,43 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
-const { app, BrowserWindow, shell } = require("electron");
+const { app, BrowserWindow, shell, dialog } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 
 const APP_ID = "gg.yamacoach.desktop";
 const SPLASH_PATH = path.join(__dirname, "splash.html");
 const BRAND_COLOR = "#07090b";
-let configuredAppUrl = "";
-let mainWindow = null;
-let splashWindow = null;
+let autoUpdater = null;
+try { autoUpdater = require("electron-updater").autoUpdater; } catch { autoUpdater = null; }
+
+// Auto-updater events
+function setupAutoUpdater() {
+  if (!autoUpdater || !app.isPackaged) return;
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.on("update-available", (info) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("update-available", info.version);
+    }
+  });
+  autoUpdater.on("update-downloaded", (info) => {
+    const choice = dialog.showMessageBoxSync(mainWindow, {
+      type: "info",
+      title: "Atualização disponível",
+      message: `Yama Coach ${info.version} foi baixado.`,
+      detail: "A atualização será instalada ao fechar o aplicativo. Deseja reiniciar agora?",
+      buttons: ["Reiniciar agora", "Depois"],
+      defaultId: 0,
+    });
+    if (choice === 0) autoUpdater.quitAndInstall();
+  });
+  autoUpdater.on("error", (err) => {
+    console.error("Auto-updater error:", err);
+  });
+  // Check for updates after a short delay
+  setTimeout(() => {
+    autoUpdater.checkForUpdatesAndNotify().catch((e) => console.error("Update check failed:", e));
+  }, 5000);
+}
 
 const packagedEnv = path.join(process.resourcesPath || "", "app.env");
 if (app.isPackaged && fs.existsSync(packagedEnv)) {
@@ -154,6 +183,9 @@ if (!app.requestSingleInstanceLock()) {
 
     // Rede de segurança: nunca deixe a splash presa na tela.
     setTimeout(closeSplash, 9000);
+
+    // Auto-updater
+    setupAutoUpdater();
 
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow(configuredAppUrl);

@@ -9,6 +9,9 @@
     "assets": "node build/generate-assets.js",
     "build:win": "electron-builder --win nsis"
   },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  },
   "devDependencies": {
     "electron": "^42.0.0",
     "electron-builder": "^26.0.12"
@@ -16,6 +19,11 @@
   "build": {
     "appId": "gg.yamacoach.desktop",
     "productName": "Yama Coach",
+    "publish": {
+      "provider": "github",
+      "owner": "LuffyHS",
+      "repo": "YamaCoach"
+    },
     "directories": { "output": "release" },
     "files": ["main.cjs", "preload.cjs", "splash.html", "package.json", "assets/**"],
     "extraResources": [{ "from": ".env.production", "to": "app.env" }],

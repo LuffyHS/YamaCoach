@@ -33,13 +33,8 @@ jobs:
           $target = [Uri]$env:YAMA_APP_URL
           if ($target.Scheme -ne "https") { throw "YAMA_APP_URL must use HTTPS." }
           Set-Content -Path desktop/.env.production -Value "YAMA_APP_URL=$env:YAMA_APP_URL" -NoNewline
-      - name: Build Windows installer
-        run: npm run build:win
+      - name: Build and publish Windows installer
+        run: npm run build:win -- --publish always
         working-directory: desktop
-      - name: Publish installer release
-        shell: pwsh
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $tag = "desktop-build-${{ github.run_number }}-${{ github.run_attempt }}"
-          gh release create $tag desktop/release/YamaCoach-Setup.exe --repo $env:GITHUB_REPOSITORY --title "Yama Coach para Windows ($tag)" --notes "Instalador Windows x64 do Yama Coach."
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
