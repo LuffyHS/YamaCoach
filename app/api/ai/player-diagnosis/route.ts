@@ -89,7 +89,7 @@ export async function POST(request: Request) {
     const assists = player.stats?.assists || 0;
     const hs = player.stats?.headshots || 0;
     const score = player.stats?.score || 0;
-    const rounds = match.metadata?.rounds_played || 1;
+    const rounds = match.rounds?.length || match.metadata?.rounds_played || 1;
 
     totalKills += kills;
     totalDeaths += deaths;
@@ -240,7 +240,7 @@ export async function POST(request: Request) {
   let report = "";
   if (geminiKey) {
     const matchSummary = matchDetails.map((md, i) =>
-      `Partida ${i + 1}: ${md.map} (${md.agent}) ${md.score} ${md.won ? "V" : "D"} - K/D/A ${md.kills}/${md.deaths}/${md.assists}, HS ${md.hs}%, ACS ${md.acs}, FB ${md.firstBloods}, rounds ${md.rounds}`
+      `Partida ${i + 1}: ${md.map} (${md.agent}) ${md.score} ${md.won ? "V" : "D"} - K/D/A ${md.kills}/${md.deaths}/${md.assists}, HS ${md.hs}%, ACS ${md.acs}, FB ${md.firstBloods}, rounds ${md.rounds}${md.roundDetails?.length ? " | Rounds: " + md.roundDetails.map((rd: any) => `${rd.result}${rd.firstBlood ? "(FB)" : ""}`).join(" ") : ""}`
     ).join("\n");
 
     const prompt = `Você é um coach de VALORANT. Analise as métricas e partidas recentes do aluno abaixo e gere um diagnóstico técnico direto em português.
@@ -261,6 +261,7 @@ ${matchSummary}
 Formato do diagnóstico:
 **Pontos Fortes Detectados** (2-3 bullets)
 **3 Principais Falhas a Corrigir Agora** (3 bullets específicos com dados)
+**Análise Round a Round** (2-3 observações sobre sequências de rounds, impacto e consistência)
 **Plano de Ação Prático para a Semana** (2-3 exercícios focados nos números reais)`;
 
     try {
