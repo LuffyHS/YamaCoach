@@ -53,8 +53,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Nenhuma partida competitiva encontrada." }, { status: 404 });
   }
 
+  let wins = 0, totalKills = 0, totalDeaths = 0, totalHS = 0, totalACS = 0, totalRounds = 0;
   const matches = matchesData.data as any[];
-  let wins = 0, totalKills = 0, totalDeaths = 0, totalHS = 0, totalACS = 0;
   const mapStats: Record<string, { wins: number; total: number; kills: number; deaths: number }> = {};
   const agentStats: Record<string, number> = {};
   const matchDetails: any[] = [];
@@ -70,13 +70,14 @@ export async function POST(request: Request) {
     const deaths = player.stats?.deaths || 0;
     const assists = player.stats?.assists || 0;
     const hs = player.stats?.headshots || 0;
-    const acs = player.stats?.score || 0;
+    const score = player.stats?.score || 0;
     const rounds = match.metadata?.rounds_played || 1;
 
     totalKills += kills;
     totalDeaths += deaths;
     totalHS += hs;
-    totalACS += acs;
+    totalACS += score;
+    totalRounds += rounds;
 
     const mapName = match.metadata?.map || "Unknown";
     if (!mapStats[mapName]) mapStats[mapName] = { wins: 0, total: 0, kills: 0, deaths: 0 };
@@ -92,6 +93,7 @@ export async function POST(request: Request) {
     const enemyScore = match.teams?.[player.team?.toLowerCase() === "red" ? "blue" : "red"]?.rounds_won ?? 0;
     const kd = deaths > 0 ? (kills / deaths).toFixed(2) : String(kills);
     const hsPercent = kills > 0 ? Math.round((hs / kills) * 100) : 0;
+    const matchAcs = Math.round(score / Math.max(1, rounds));
 
     let diagnosis = "";
     if (won) {
@@ -101,6 +103,18 @@ export async function POST(request: Request) {
       if (parseFloat(kd) < 0.8) diagnosis = "Dificuldade de impacto, muitas mortes.";
       else if (hsPercent < 20) diagnosis = "HS baixo, revisar crosshair placement.";
       else diagnosis = "Performance individual ok, mas equipe perdeu.";
+    }
+
+    // Format date in Portuguese
+    const rawDate = match.metadata?.game_start_patched || "";
+    let formattedDate = rawDate;
+    if (rawDate) {
+      try {
+        const d = new Date(rawDate);
+        if (!isNaN(d.getTime())) {
+          formattedDate = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
+        }
+      } catch { /* keep raw */ }
     }
 
     matchDetails.push({
@@ -113,10 +127,10 @@ export async function POST(request: Request) {
       assists,
       kd: parseFloat(kd),
       hs: hsPercent,
-      acs: Math.round(acs / Math.max(1, rounds)),
+      acs: matchAcs,
       rounds,
       diagnosis,
-      date: match.metadata?.game_start_patched || "",
+      date: formattedDate,
     });
   }
 
@@ -124,7 +138,7 @@ export async function POST(request: Request) {
   const winrate = matchCount > 0 ? Math.round((wins / matchCount) * 100) : 0;
   const kd = totalDeaths > 0 ? (totalKills / totalDeaths).toFixed(2) : String(totalKills);
   const hsPercent = totalKills > 0 ? Math.round((totalHS / totalKills) * 100) : 0;
-  const acs = matchCount > 0 ? Math.round(totalACS / matchCount) : 0;
+  const acs = totalRounds > 0 ? Math.round(totalACS / totalRounds) : 0;
 
   const worstMaps = Object.entries(mapStats)
     .filter(([, v]) => v.total >= 1)
@@ -147,6 +161,22 @@ export async function POST(request: Request) {
 
   const currentTier = mmrData?.data?.current_data?.currenttierpatched || null;
 
+  // Translate tier to Portuguese
+  const tierMap: Record<string, string> = {
+    "Iron": "Ferro", "Bronze": "Bronze", "Silver": "Prata", "Gold": "Ouro",
+    "Platinum": "Platina", "Diamond": "Diamante", "Ascendant": "Ascendente",
+    "Immortal": "Imortal", "Radiant": "Radiante",
+  };
+  let translatedTier = currentTier;
+  if (currentTier) {
+    for (const [en, pt] of Object.entries(tierMap)) {
+      if (currentTier.startsWith(en)) {
+        translatedTier = currentTier.replace(en, pt);
+        break;
+      }
+    }
+  }
+
   const metrics = {
     matches: matchCount,
     winrate,
@@ -157,7 +187,7 @@ export async function POST(request: Request) {
     agents: topAgents,
     worstMaps,
     benchmarks,
-    currentTier,
+    currentTier: translatedTier,
     matchDetails,
   };
 

@@ -40,9 +40,9 @@ type DiagnosisResult = {
 
 function BenchmarkBadge({ value, benchmark, higherBetter = true }: { value: number; benchmark: number; higherBetter?: boolean }) {
   const diff = value - benchmark;
+  const threshold = 0.05 * benchmark;
+  if (Math.abs(diff) < threshold) return <span className="bench-badge bench-avg">Na média</span>;
   const good = higherBetter ? diff >= 0 : diff <= 0;
-  const abs = Math.abs(diff);
-  if (abs < 0.05 * benchmark) return <span className="bench-badge bench-avg">Na média</span>;
   if (good) return <span className="bench-badge bench-above">Acima</span>;
   return <span className="bench-badge bench-below">Abaixo</span>;
 }
@@ -81,10 +81,9 @@ export function AiDiagnosisPanel({ studentId, coach = false, students = [] }: { 
     <div className="ai-diagnosis-panel">
       <div className="ai-diagnosis-header">
         <div>
-          <h2 className="card-title">Diagnóstico IA</h2>
           <p style={{ fontSize: 11, color: "var(--muted)", margin: 0 }}>
             Análise das últimas partidas competitivas via HenrikDev + Gemini
-            {m?.currentTier && <span style={{ marginLeft: 8, color: "var(--emerald)" }}>· {m.currentTier}</span>}
+            {m?.currentTier && <span style={{ marginLeft: 8, color: "var(--emerald)", fontWeight: 600 }}>· {m.currentTier}</span>}
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -109,7 +108,7 @@ export function AiDiagnosisPanel({ studentId, coach = false, students = [] }: { 
 
       {m && (
         <>
-          {/* Metrics cards */}
+          {/* KPI cards */}
           <div className="ai-metrics-grid">
             <div className="ai-metric">
               <small>Partidas</small>
@@ -137,7 +136,7 @@ export function AiDiagnosisPanel({ studentId, coach = false, students = [] }: { 
             </div>
             <div className="ai-metric">
               <small>Agentes</small>
-              <strong style={{ fontSize: 10 }}>{m.agents.slice(0, 3).join(", ")}</strong>
+              <strong style={{ fontSize: 10 }}>{m.agents.slice(0, 2).join(", ")}</strong>
             </div>
           </div>
 
