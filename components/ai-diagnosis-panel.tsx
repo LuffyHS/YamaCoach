@@ -292,6 +292,29 @@ export function AiDiagnosisPanel({ studentId, coach = false, students = [] }: { 
             </div>
           </div>
 
+          {/* Executive AI Summary */}
+          <div className="ai-executive-summary">
+            <h3><Brain size={14} /> Resumo Executivo da IA</h3>
+            <div className="ai-executive-block">
+              <small>Diagnóstico direto</small>
+              <p>{m.winrate >= 50 ? "Performance consistente com winrate positivo." : "Winrate abaixo de 50% — foco em consistência e tomada de decisão."} K/D de {m.kd} {m.kd >= 1.15 ? "está acima" : "está abaixo"} da média do elo alvo.</p>
+            </div>
+            <div className="ai-executive-block">
+              <small>Prioridade de treino</small>
+              <p>{m.hs < 25 ? "Crosshair placement e HS% (atual " + m.hs + "%, meta " + (bench?.hs ?? 25) + "%)." : "Manter HS% e focar em K/D e ACS."} {m.worstMaps?.[0] ? `Mapa prioritário: ${m.worstMaps[0].map} (${m.worstMaps[0].winrate}% winrate).` : ""}</p>
+            </div>
+            <div className="ai-executive-block">
+              <small>Pontos de atenção</small>
+              <ul>
+                {m.kd < 1.0 && <li>K/D abaixo de 1.0 — muitas mortes por round</li>}
+                {m.hs < 20 && <li>HS% muito baixo — revisar crosshair placement</li>}
+                {m.winrate < 45 && <li>Winrate abaixo de 45% — foco em consistência</li>}
+                {m.acs < 200 && <li>ACS baixo — mais participação nos rounds</li>}
+                {m.kd >= 1.0 && m.hs >= 20 && m.winrate >= 45 && m.acs >= 200 && <li>Performance sólida — manter consistência e focar em mapas fracos</li>}
+              </ul>
+            </div>
+          </div>
+
           {/* Gemini report */}
           {result?.report && (
             <div className="notice" style={{ marginTop: 12, whiteSpace: "pre-wrap" }}>
