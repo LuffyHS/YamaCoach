@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Loader2, RefreshCw, Brain } from "lucide-react";
+import { ValorantAgentAvatar } from "@/components/valorant-agent-avatar";
 
 type MatchDetail = {
   map: string;
@@ -17,6 +18,8 @@ type MatchDetail = {
   rounds: number;
   diagnosis: string;
   date: string;
+  mapImage: string | null;
+  roundDetails?: { round: number; result: string; firstBlood: boolean; kills: number; deaths: number; assists: number; score: number }[];
 };
 
 type DiagnosisResult = {
@@ -52,6 +55,7 @@ export function AiDiagnosisPanel({ studentId, coach = false, students = [] }: { 
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<DiagnosisResult | null>(null);
   const [region, setRegion] = useState("br");
+  const [expandedMatch, setExpandedMatch] = useState<number | null>(null);
   const [checkedGoals, setCheckedGoals] = useState<boolean[]>([false, false, false, false, false]);
 
   async function run() {
@@ -180,21 +184,61 @@ export function AiDiagnosisPanel({ studentId, coach = false, students = [] }: { 
               <h3 className="card-title">Partidas recentes</h3>
               <div className="ai-matches-list">
                 {m.matchDetails.map((match, i) => (
-                  <div key={i} className={`ai-match-row ${match.won ? "is-win" : "is-loss"}`}>
-                    <div className="ai-match-top">
-                      <span className={`ai-match-result ${match.won ? "win" : "loss"}`}>{match.won ? "V" : "D"}</span>
-                      <span className="ai-match-map">{match.map}</span>
-                      <span className="ai-match-agent">{match.agent}</span>
-                      <span className="ai-match-score">{match.score}</span>
-                      <span className="ai-match-date">{match.date}</span>
+                  <div key={i} className="ai-match-banner">
+                    <div className={`ai-match-banner-left ${match.won ? "is-win" : "is-loss"}`}>
+                      <div className="ai-match-agent-portrait">
+                        <ValorantAgentAvatar name={match.agent} size={48} />
+                        <span className={`ai-match-wl-badge ${match.won ? "win" : "loss"}`}>{match.won ? "V" : "D"}</span>
+                      </div>
+                      <div className="ai-match-info">
+                        <span className="ai-match-map-name">{match.map}</span>
+                        <span className="ai-match-agent-name">{match.agent}</span>
+                        <span className="ai-match-score-big">{match.score}</span>
+                      </div>
                     </div>
-                    <div className="ai-match-stats">
-                      <span>{match.kills}/{match.deaths}/{match.assists}</span>
-                      <span>K/D {match.kd}</span>
-                      <span>HS {match.hs}%</span>
-                      <span>ACS {match.acs}</span>
+                    <div className="ai-match-banner-mid">
+                      <div className="ai-match-kda-block">
+                        <span className="ai-match-kda">{match.kills}/{match.deaths}/{match.assists}</span>
+                        <span className="ai-match-kd">K/D {match.kd}</span>
+                      </div>
+                      <div className="ai-match-extra">
+                        <span>HS {match.hs}%</span>
+                        <span>ACS {match.acs}</span>
+                      </div>
+                      <div className="ai-match-date">{match.date}</div>
                     </div>
-                    <div className="ai-match-diagnosis">{match.diagnosis}</div>
+                    <div className="ai-match-banner-right" style={match.mapImage ? { backgroundImage: `linear-gradient(90deg, rgba(7,9,11,.95) 0%, rgba(7,9,11,.6) 40%, rgba(7,9,11,.3) 100%), url(${match.mapImage})` } : undefined}>
+                      <div className="ai-match-diagnosis">{match.diagnosis}</div>
+                      {match.roundDetails && match.roundDetails.length > 0 && (
+                        <button type="button" className="ai-match-expand-btn" onClick={() => setExpandedMatch(expandedMatch === i ? null : i)}>
+                          {expandedMatch === i ? "Ocultar rounds" : "Ver rounds"}
+                        </button>
+                      )}
+                    </div>
+                    {expandedMatch === i && match.roundDetails && match.roundDetails.length > 0 && (
+                      <div className="ai-match-rounds">
+                        <div className="ai-rounds-header">
+                          <span>Rnd</span>
+                          <span>Resultado</span>
+                          <span>K</span>
+                          <span>D</span>
+                          <span>A</span>
+                          <span>ACS</span>
+                          <span>FB</span>
+                        </div>
+                        {match.roundDetails.map((rd, j) => (
+                          <div key={j} className={`ai-round-row ${rd.result === "V" ? "is-win" : "is-loss"}`}>
+                            <span>{rd.round}</span>
+                            <span className={rd.result === "V" ? "win" : "loss"}>{rd.result}</span>
+                            <span>{rd.kills}</span>
+                            <span>{rd.deaths}</span>
+                            <span>{rd.assists}</span>
+                            <span>{rd.score}</span>
+                            <span>{rd.firstBlood ? "✓" : "—"}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
