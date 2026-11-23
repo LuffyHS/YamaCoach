@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { signOut } from "@/lib/auth/session";
 
-export async function POST() {
+export async function POST(request: Request) {
   await signOut();
-  return NextResponse.redirect(new URL("/login", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"), 303);
+  return NextResponse.redirect(new URL("/login", request.url), 303);
 }
