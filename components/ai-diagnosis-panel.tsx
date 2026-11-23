@@ -86,10 +86,7 @@ export function AiDiagnosisPanel({ studentId, coach = false, students = [] }: { 
     <div className="ai-diagnosis-panel">
       <div className="ai-diagnosis-header">
         <div>
-          <p style={{ fontSize: 11, color: "var(--muted)", margin: 0 }}>
-            Análise das últimas partidas competitivas via HenrikDev + Gemini
-            {m?.currentTier && <span style={{ marginLeft: 8, color: "var(--emerald)", fontWeight: 600 }}>· {m.currentTier}</span>}
-          </p>
+          {m?.currentTier && <span style={{ color: "var(--emerald)", fontWeight: 600, fontSize: 12 }}>Elo: {m.currentTier}</span>}
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           {coach && students.length > 0 && (
@@ -202,8 +199,8 @@ export function AiDiagnosisPanel({ studentId, coach = false, students = [] }: { 
                         <span className="ai-match-kd">K/D {match.kd}</span>
                       </div>
                       <div className="ai-match-extra">
-                        <span>HS {match.hs}%</span>
-                        <span>ACS {match.acs}</span>
+                        <span>HS {match.hs}% <small className="ai-delta">{match.hs >= 25 ? `+${match.hs - 25}` : match.hs - 25}% vs Asc</small></span>
+                        <span>ACS {match.acs} <small className="ai-delta">{match.acs >= 230 ? `+${match.acs - 230}` : match.acs - 230} vs Asc</small></span>
                       </div>
                       <div className="ai-match-date">{match.date}</div>
                     </div>
@@ -245,51 +242,54 @@ export function AiDiagnosisPanel({ studentId, coach = false, students = [] }: { 
             </div>
           )}
 
-          {/* Maps breakdown */}
-          {m.worstMaps && m.worstMaps.length > 0 && (
-            <div className="ai-maps-card">
-              <h3 className="card-title">Desempenho por mapa</h3>
-              <div className="ai-maps-list">
-                {m.worstMaps.map((map, i) => (
-                  <div key={i} className="ai-map-row">
-                    <span className="ai-map-name">{map.map}</span>
-                    <span className="ai-map-games">{map.games} jogos</span>
-                    <span className="ai-map-kd">K/D {map.kd}</span>
-                    <div className="ai-map-bar"><i style={{ width: `${map.winrate}%` }} /></div>
-                    <span className="ai-map-wr">{map.winrate}%</span>
-                  </div>
-                ))}
+          {/* Bottom 2-column grid */}
+          <div className="ai-bottom-grid">
+            {/* Maps breakdown */}
+            {m.worstMaps && m.worstMaps.length > 0 && (
+              <div className="ai-maps-card">
+                <h3 className="card-title">Desempenho por mapa</h3>
+                <div className="ai-maps-list">
+                  {m.worstMaps.map((map, i) => (
+                    <div key={i} className="ai-map-row">
+                      <span className="ai-map-name">{map.map}</span>
+                      <span className="ai-map-games">{map.games} jogos</span>
+                      <span className="ai-map-kd">K/D {map.kd}</span>
+                      <div className="ai-map-bar"><i style={{ width: `${map.winrate}%` }} /></div>
+                      <span className="ai-map-wr">{map.winrate}%</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Weekly goals checklist */}
-          <div className="ai-goals-card">
-            <h3 className="card-title">Checklist de metas semanais</h3>
-            <ul className="ai-goals-list">
-              {[
-                `Manter K/D acima de ${bench?.kd ?? 1.15} em pelo menos 60% das partidas`,
-                `Alcançar HS% acima de ${bench?.hs ?? 25}% nas próximas 5 partidas`,
-                `Jogar pelo menos 2 partidas em ${m.worstMaps?.[0]?.map || "mapas fracos"} para melhorar winrate`,
-                "Praticar crosshair placement em TDM (15 min/dia)",
-                "Revisar VOD de uma derrota focando em first deaths",
-              ].map((goal, i) => (
-                <li key={i} className={checkedGoals[i] ? "is-checked" : ""}>
-                  <label className="ai-goal-label">
-                    <input
-                      type="checkbox"
-                      checked={checkedGoals[i]}
-                      onChange={() => {
-                        const next = [...checkedGoals];
-                        next[i] = !next[i];
-                        setCheckedGoals(next);
-                      }}
-                    />
-                    <span>{goal}</span>
-                  </label>
-                </li>
-              ))}
-            </ul>
+            {/* Weekly goals checklist */}
+            <div className="ai-goals-card">
+              <h3 className="card-title">Checklist de metas semanais</h3>
+              <ul className="ai-goals-list">
+                {[
+                  `Manter K/D acima de ${bench?.kd ?? 1.15} em pelo menos 60% das partidas`,
+                  `Alcançar HS% acima de ${bench?.hs ?? 25}% nas próximas 5 partidas`,
+                  `Jogar pelo menos 2 partidas em ${m.worstMaps?.[0]?.map || "mapas fracos"} para melhorar winrate`,
+                  "Praticar crosshair placement em TDM (15 min/dia)",
+                  "Revisar VOD de uma derrota focando em first deaths",
+                ].map((goal, i) => (
+                  <li key={i} className={checkedGoals[i] ? "is-checked" : ""}>
+                    <label className="ai-goal-label">
+                      <input
+                        type="checkbox"
+                        checked={checkedGoals[i]}
+                        onChange={() => {
+                          const next = [...checkedGoals];
+                          next[i] = !next[i];
+                          setCheckedGoals(next);
+                        }}
+                      />
+                      <span>{goal}</span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
           {/* Gemini report */}

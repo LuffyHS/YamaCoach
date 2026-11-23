@@ -139,12 +139,14 @@ export async function POST(request: Request) {
 
     let diagnosis = "";
     if (won) {
-      if (parseFloat(kd) >= 1.2) diagnosis = "Boa performance, impactou positivamente a vitória.";
-      else diagnosis = "Vitória em equipe, contribuição moderada.";
+      if (parseFloat(kd) >= 1.2 && hsPercent >= 25) diagnosis = "Dominou a partida com K/D alto e HS consistente. Impacto positivo em rounds decisivos.";
+      else if (parseFloat(kd) >= 1.0) diagnosis = "Vitória sólida com contribuição equilibrada. Manteve consistência ao longo dos rounds.";
+      else diagnosis = "Vitória em equipe, mas contribuição individual abaixo do esperado. Faltou impacto nos rounds.";
     } else {
-      if (parseFloat(kd) < 0.8) diagnosis = "Dificuldade de impacto, muitas mortes.";
-      else if (hsPercent < 20) diagnosis = "HS baixo, revisar crosshair placement.";
-      else diagnosis = "Performance individual ok, mas equipe perdeu.";
+      if (parseFloat(kd) < 0.8) diagnosis = "Dificuldade de impacto com muitas mortes. Revisar posicionamento e timing de peeks.";
+      else if (hsPercent < 20) diagnosis = "HS baixo indica problemas de crosshair placement. Foco em treino de mira.";
+      else if (kills < 10) diagnosis = "Baixo volume de abates. Mais agressividade e participação nos rounds.";
+      else diagnosis = "Performance individual adequada, mas equipe não acompanhou. Faltou coordenação.";
     }
 
     const rawDate = match.metadata?.started_at || "";
