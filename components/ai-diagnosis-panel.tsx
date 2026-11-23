@@ -52,6 +52,7 @@ export function AiDiagnosisPanel({ studentId, coach = false, students = [] }: { 
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<DiagnosisResult | null>(null);
   const [region, setRegion] = useState("br");
+  const [checkedGoals, setCheckedGoals] = useState<boolean[]>([false, false, false, false, false]);
 
   async function run() {
     const targetId = coach ? selectedStudent : studentId;
@@ -222,11 +223,28 @@ export function AiDiagnosisPanel({ studentId, coach = false, students = [] }: { 
           <div className="ai-goals-card">
             <h3 className="card-title">Checklist de metas semanais</h3>
             <ul className="ai-goals-list">
-              <li>Manter K/D acima de {bench?.kd ?? 1.15} em pelo menos 60% das partidas</li>
-              <li>Alcançar HS% acima de {bench?.hs ?? 25}% nas próximas 5 partidas</li>
-              <li>Jogar pelo menos 2 partidas em {m.worstMaps?.[0]?.map || "mapas fracos"} para melhorar winrate</li>
-              <li>Praticar crosshair placement em TDM (15 min/dia)</li>
-              <li>Revisar VOD de uma derrota focando em first deaths</li>
+              {[
+                `Manter K/D acima de ${bench?.kd ?? 1.15} em pelo menos 60% das partidas`,
+                `Alcançar HS% acima de ${bench?.hs ?? 25}% nas próximas 5 partidas`,
+                `Jogar pelo menos 2 partidas em ${m.worstMaps?.[0]?.map || "mapas fracos"} para melhorar winrate`,
+                "Praticar crosshair placement em TDM (15 min/dia)",
+                "Revisar VOD de uma derrota focando em first deaths",
+              ].map((goal, i) => (
+                <li key={i} className={checkedGoals[i] ? "is-checked" : ""}>
+                  <label className="ai-goal-label">
+                    <input
+                      type="checkbox"
+                      checked={checkedGoals[i]}
+                      onChange={() => {
+                        const next = [...checkedGoals];
+                        next[i] = !next[i];
+                        setCheckedGoals(next);
+                      }}
+                    />
+                    <span>{goal}</span>
+                  </label>
+                </li>
+              ))}
             </ul>
           </div>
 
