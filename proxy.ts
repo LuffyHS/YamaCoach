@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { DESKTOP_COOKIE, DESKTOP_QUERY_PARAM, isDesktopServerSide } from "@/lib/is-desktop";
+import { getPublicOrigin } from "@/lib/public-origin";
 
 function createSupabase(request: NextRequest, response: NextResponse) {
   return createServerClient(
@@ -43,19 +44,19 @@ export default async function proxy(request: NextRequest) {
   // Root route: desktop never sees the landing page.
   if (url.pathname === "/" && isDesktop) {
     if (user) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+      return NextResponse.redirect(new URL("/dashboard", getPublicOrigin(request)), 303);
     }
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/login", getPublicOrigin(request)), 303);
   }
 
   // /login: redirect authenticated users to /dashboard (no redirect loop).
   if (url.pathname === "/login" && user) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL("/dashboard", getPublicOrigin(request)), 303);
   }
 
   // /dashboard/*: redirect unauthenticated users to /login.
   if (url.pathname.startsWith("/dashboard") && !user) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/login", getPublicOrigin(request)), 303);
   }
 
   // When desktop query param present on any route, set cookie (already done above).

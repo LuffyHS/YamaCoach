@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { getPublicOrigin } from "@/lib/public-origin";
 import { revalidatePath } from "next/cache";
 
 export async function POST(request: Request) {
@@ -33,5 +34,5 @@ export async function POST(request: Request) {
 
   revalidatePath("/dashboard/alunos");
   revalidatePath("/dashboard");
-  return NextResponse.redirect(new URL("/dashboard/alunos?revoked=1", request.url), 303);
+  return NextResponse.redirect(new URL("/dashboard/alunos?revoked=1", getPublicOrigin(request)), 303);
 }

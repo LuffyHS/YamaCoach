@@ -68,7 +68,12 @@ export function DashboardNav({ role, name, rank, avatarUrl, pendingVods = 0, pen
       </nav>
 
       <div className="side-bottom">
-        <form action="/api/logout" method="post"><button className="side-link"><LogOut size={16} />Sair da conta</button></form>
+        <button className="side-link" onClick={async () => {
+          const supabase = (await import("@/lib/supabase/client")).createClient();
+          await supabase.auth.signOut();
+          // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+          window.location.href = "/login";
+        }}><LogOut size={16} />Sair da conta</button>
         <small className="version-label">YAMA COACH · PRIVATE TRAINING</small>
       </div>
     </aside>

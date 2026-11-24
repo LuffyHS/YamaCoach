@@ -181,7 +181,13 @@ function createWindow(appUrl) {
   });
   window.webContents.on("will-navigate", (event, url) => {
     try {
-      if (new URL(url).origin !== trustedOrigin) {
+      const parsed = new URL(url);
+      if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
+        event.preventDefault();
+        void shell.openExternal("https://yamacoach.onrender.com/login");
+        return;
+      }
+      if (parsed.origin !== trustedOrigin) {
         event.preventDefault();
         void shell.openExternal(url);
       }
@@ -196,8 +202,11 @@ function createWindow(appUrl) {
     }
   });
 
-  void window.loadURL(desktopUrl);
-  return window;
+  window.webContents.on("did-fail-load", () => {
+    if (!window.isDestroyed()) {
+      void window.loadURL("https://yamacoach.onrender.com/login?desktop=1");
+    }
+  });
 }
 
 if (!app.requestSingleInstanceLock()) {

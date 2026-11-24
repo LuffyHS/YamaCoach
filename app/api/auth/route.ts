@@ -3,6 +3,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { z } from "zod";
 import { rateLimit } from "@/lib/rate-limit";
 import { isSupabaseConfigured } from "@/lib/env";
+import { getPublicOrigin } from "@/lib/public-origin";
 
 const bodySchema = z.object({
   email: z.string().trim().email().max(254),
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
           password: body.password,
           options: {
             data: { full_name: body.name, role: "student" },
-            emailRedirectTo: `${new URL(request.url).origin}/auth/callback`,
+            emailRedirectTo: `${getPublicOrigin(request)}/auth/callback`,
           },
         });
         if (error || !data.user) return NextResponse.json({ error: error?.message || "Não foi possível criar a conta." }, { status: 400 });

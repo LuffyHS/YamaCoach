@@ -55,10 +55,13 @@ export async function updateSession(request: NextRequest) {
   return response;
 }
 
+import { getPublicOrigin } from "@/lib/public-origin";
+
+// ... (keep updateSession as is, but fix redirectTo)
+
 function redirectTo(request: NextRequest, response: NextResponse, pathname: string) {
-  const url = request.nextUrl.clone();
-  url.pathname = pathname;
-  const redirect = NextResponse.redirect(url);
+  const url = new URL(pathname, getPublicOrigin(request));
+  const redirect = NextResponse.redirect(url, 303);
   response.cookies.getAll().forEach((cookie) => {
     redirect.cookies.set(cookie);
   });

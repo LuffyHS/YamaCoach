@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { getSessionUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { getPublicOrigin } from "@/lib/public-origin";
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
@@ -27,5 +28,5 @@ export async function POST(request: Request) {
 
   revalidatePath("/dashboard/alunos");
   revalidatePath("/dashboard");
-  return NextResponse.redirect(new URL("/dashboard/alunos?payment=updated", request.url), 303);
+  return NextResponse.redirect(new URL("/dashboard/alunos?payment=updated", getPublicOrigin(request)), 303);
 }
