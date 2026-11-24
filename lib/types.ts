@@ -20,6 +20,7 @@ export type Profile = {
   subscription_expires_at: string | null;
   subscription_status?: string;
   riot_id?: string | null;
+  avatar_url?: string | null;
   created_at: string;
   setup?: PlayerSetup;
   recurring_errors?: string;

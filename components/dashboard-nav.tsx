@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSyncExternalStore, useState } from "react";
-import { Brain, CalendarDays, Dumbbell, LayoutDashboard, LogOut, Menu, Radio, Settings, Users, Video, X } from "lucide-react";
+import { Brain, CalendarDays, Dumbbell, LayoutDashboard, LogOut, Menu, Radio, Settings, User, Users, Video, X } from "lucide-react";
 import type { Role } from "@/lib/types";
 import { ValorantRankBadge } from "@/components/valorant-rank-badge";
 import { YamaLogo } from "@/components/yama-logo";
@@ -36,11 +36,11 @@ export function DashboardNav({ role, name, rank, pendingVods = 0, pendingPayment
         <YamaLogo showWordmark={false} size="sm" />YAMA<span className="brand-muted">/{role === "coach" ? "COACH" : "PLAYER"}</span>
       </Link>
 
-      <div className="side-profile">
+      <Link href="/dashboard/perfil" className="side-profile" onClick={close}>
         <span className="avatar">{name.slice(0, 1).toUpperCase()}</span>
         <span className="side-profile-copy"><b>{name}</b><small>{role === "coach" ? "Coach workspace" : "Player workspace"}{role === "student" && <ValorantRankBadge rank={rank} size="sm" />}</small></span>
         <i className="online-dot" />
-      </div>
+      </Link>
 
       <div className="workspace">SEU ESPAÇO</div>
       <nav className="dashboard-navigation" aria-label="Navegação do painel">
@@ -60,6 +60,10 @@ export function DashboardNav({ role, name, rank, pendingVods = 0, pendingPayment
             <Users size={17} />Alunos e pagamentos{pendingPayments > 0 && <span className="side-count">{pendingPayments}</span>}
           </Link>
         </>}
+        <div className="workspace navigation-section-label">CONTA</div>
+        <Link href="/dashboard/perfil" onClick={close} className={`side-link ${isActive("/dashboard/perfil") ? "active" : ""}`}>
+          <User size={17} />Meu Perfil
+        </Link>
       </nav>
 
       <div className="side-bottom">
