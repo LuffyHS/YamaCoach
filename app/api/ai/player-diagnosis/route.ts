@@ -137,16 +137,52 @@ export async function POST(request: Request) {
       });
     }
 
+    // Diagnóstico tático detalhado por partida com base nos dados reais
+    const roundWins = roundDetails.filter((r: any) => r.result === "V").length;
+    const roundLosses = roundDetails.filter((r: any) => r.result === "D").length;
+    const totalRoundKills = roundDetails.reduce((sum: number, r: any) => sum + r.kills, 0);
+    const totalRoundDeaths = roundDetails.reduce((sum: number, r: any) => sum + r.deaths, 0);
+    const totalRoundAssists = roundDetails.reduce((sum: number, r: any) => sum + r.assists, 0);
+    const avgRoundDamage = totalRounds > 0 ? Math.round(score / totalRounds) : score;
+
+    // Gera diagnóstico único baseado nos dados reais da partida
+    const roundContext = roundDetails.map((r: any) => `R${r.round}:${r.result}`).join(", ");
+    const hasFirstBlood = firstBloods > 0;
+    const hasClutch = clutches > 0;
+    const isCloseGame = Math.abs(teamScore - enemyScore) <= 2;
+
     let diagnosis = "";
     if (won) {
-      if (parseFloat(kd) >= 1.2 && hsPercent >= 25) diagnosis = "Dominou a partida com K/D alto e HS consistente. Impacto positivo em rounds decisivos.";
-      else if (parseFloat(kd) >= 1.0) diagnosis = "Vitória sólida com contribuição equilibrada. Manteve consistência ao longo dos rounds.";
-      else diagnosis = "Vitória em equipe, mas contribuição individual abaixo do esperado. Faltou impacto nos rounds.";
+      if (parseFloat(kd) >= 1.3 && hsPercent >= 30) {
+        diagnosis = `Domínio absoluto em ${mapName} com ${agentName}: ${kills}/${deaths}/${assists} e HS de ${hsPercent}%. Impacto decisivo em ${roundWins} rounds vencidos.`;
+      } else if (parseFloat(kd) >= 1.0) {
+        diagnosis = `Bom desempenho em ${mapName} com ${agentName}: ${kills}/${deaths}/${assists}. Contribuiu consistentemente, mas pode aumentar o impacto em rounds fechados.`;
+      } else if (hsPercent >= 25) {
+        diagnosis = `Vitória em ${mapName} com ${agentName}, porém ${kills} abates são poucos. Precisa de mais presença nos rounds decisivos.`;
+      } else {
+        diagnosis = `Vitória em ${mapName} com ${agentName}: ${kills}/${deaths}/${assists}. A equipe carregou, mas sua participação individual ficou abaixo do esperado.`;
+      }
     } else {
-      if (parseFloat(kd) < 0.8) diagnosis = "Dificuldade de impacto com muitas mortes. Revisar posicionamento e timing de peeks.";
-      else if (hsPercent < 20) diagnosis = "HS baixo indica problemas de crosshair placement. Foco em treino de mira.";
-      else if (kills < 10) diagnosis = "Baixo volume de abates. Mais agressividade e participação nos rounds.";
-      else diagnosis = "Performance individual adequada, mas equipe não acompanhou. Faltou coordenação.";
+      if (parseFloat(kd) < 0.8) {
+        diagnosis = `Dificuldade de impacto em ${mapName} com ${agentName}: ${kills}/${deaths}/${assists}. Revisar posicionamento e timing de entrada.`;
+      } else if (hsPercent < 20) {
+        diagnosis = `HS baixo (${hsPercent}%) em ${mapName} com ${agentName}. Foco em crosshair placement e treino de mira.`;
+      } else if (kills < 8) {
+        diagnosis = `Baixo volume de abates (${kills}) em ${mapName} com ${agentName}. Mais agressividade e participação nos rounds.`;
+      } else if (roundLosses > roundWins * 1.5) {
+        diagnosis = `Perdeu muitos rounds em ${mapName} com ${agentName}: ${kills}/${deaths}/${assists}. Revisar tomada de decisão em rounds perdidos.`;
+      } else {
+        diagnosis = `Desempenho adequado em ${mapName} com ${agentName}: ${kills}/${deaths}/${assists}, mas equipe não acompanhou. Faltou sincronia em rounds decisivos.`;
+      }
+    }
+
+    // Adiciona contexto específico de round quando disponível
+    if (roundDetails.length > 0) {
+      const firstBloodContext = firstBloods > 0 ? ` Pegou ${firstBloods} first blood(s).` : "";
+      const clutchContext = clutches > 0 ? ` Fez ${clutches} clutch(es).` : "";
+      if (firstBloodContext || clutchContext) {
+        diagnosis += `${firstBloodContext}${clutchContext}`;
+      }
     }
 
     const rawDate = match.metadata?.started_at || "";
@@ -241,11 +277,12 @@ export async function POST(request: Request) {
   const geminiKey = process.env.GEMINI_API_KEY;
   let report = "";
   if (geminiKey) {
-    const matchSummary = matchDetails.map((md, i) =>
-      `Partida ${i + 1}: ${md.map} (${md.agent}) ${md.score} ${md.won ? "V" : "D"} - K/D/A ${md.kills}/${md.deaths}/${md.assists}, HS ${md.hs}%, ACS ${md.acs}, FB ${md.firstBloods}, rounds ${md.rounds}${md.roundDetails?.length ? " | Rounds: " + md.roundDetails.map((rd: any) => `${rd.result}${rd.firstBlood ? "(FB)" : ""}`).join(" ") : ""}`
-    ).join("\n");
+    const matchSummary = matchDetails.map((md, i) => {
+      const roundInfo = md.roundDetails?.map((rd: any) => `R${rd.round}:${rd.result}${rd.firstBlood ? "+FB" : ""}`).join(" ") || "";
+      return `Partida ${i + 1}: ${md.map} (${md.agent}) ${md.score} ${md.won ? "V" : "D"} - K/D/A ${md.kills}/${md.deaths}/${md.assists}, HS ${md.hs}%, ACS ${md.acs}, FB ${md.firstBloods}, rounds ${md.rounds}${md.roundDetails?.length ? " | Rounds: " + roundInfo : ""}`;
+    }).join("\n");
 
-    const prompt = `Você é um coach de VALORANT. Analise as métricas e partidas recentes do aluno abaixo e gere um diagnóstico técnico direto em português.
+    const prompt = `Você é um coach de VALORANT. Analise as métricas e partidas recentes do aluno abaixo e gere um diagnóstico técnico detalhado em português.
 
 Aluno: ${profile.full_name}
 Elo atual: ${translatedTier || "Desconhecido"}
@@ -254,16 +291,21 @@ Métricas (últimas ${matchCount} partidas competitivas):
 - K/D: ${kd}
 - Headshot%: ${hsPercent}%
 - ACS médio: ${acs}
-- Mapas com pior desempenho: ${worstMaps.map(m => `${m.map} (${m.winrate}%)`).join(", ") || "Nenhum"}
+- Mapas com pior desempenho: ${worstMaps.map(m => `${m.map} (${m.winrate}% em ${m.games} jogos)`).join(", ") || "Nenhum"}
 - Agentes mais jogados: ${topAgents.join(", ")}
 
-Partidas recentes:
+Partidas recentes com dados por round:
 ${matchSummary}
 
+Para CADA partida, forneça um diagnóstico único e específico em 2-3 frases que inclua:
+1. O mapa e agente jogados
+2. O principal erro tático identificado nos rounds (ex: muitas primeiras mortes, falta de entrada, economia ruim, falta de uso de utilitários)
+3. Uma ação prática imediata para melhorar
+
 Formato do diagnóstico:
-**Pontos Fortes Detectados** (2-3 bullets)
-**3 Principais Falhas a Corrigir Agora** (3 bullets específicos com dados)
-**Análise Round a Round** (2-3 observações sobre sequências de rounds, impacto e consistência)
+**Pontos Fortes Detectados** (2-3 bullets baseados nos dados reais)
+**3 Principais Falhas a Corrigir Agora** (3 bullets específicos com dados das partidas)
+**Análise Round a Round** (2-3 observações sobre sequências de rounds, impacto e consistência por mapa)
 **Plano de Ação Prático para a Semana** (2-3 exercícios focados nos números reais)`;
 
     try {
