@@ -37,31 +37,24 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 18px;
+      gap: 14px;
       text-align: center;
       padding: 24px;
     }
     .logo {
       position: relative;
-      width: 92px;
-      height: 92px;
+      width: 80px;
+      height: 80px;
       display: grid;
       place-items: center;
       border: 1px solid rgba(16, 185, 129, 0.28);
-      border-radius: 24px;
+      border-radius: 20px;
       background: linear-gradient(145deg, #0d1115 0%, #07090b 78%);
       box-shadow: 0 22px 60px rgba(0, 0, 0, 0.5), inset 0 0 30px rgba(16, 185, 129, 0.06);
     }
-    .logo::before {
-      content: "";
-      position: absolute;
-      inset: 12px;
-      border: 1px solid rgba(16, 185, 129, 0.1);
-      border-radius: 16px;
-    }
     .logo svg { display: block; }
     .mark {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 700;
       letter-spacing: 0.34em;
       text-indent: 0.34em;
@@ -77,15 +70,16 @@
       color: var(--muted);
     }
     .status {
-      margin-top: 10px;
+      margin-top: 4px;
       font-size: 11px;
       letter-spacing: 0.04em;
       color: #9fb0a8;
+      min-height: 16px;
     }
     .track {
-      width: 180px;
+      width: 200px;
       height: 3px;
-      margin-top: 12px;
+      margin-top: 6px;
       border-radius: 999px;
       background: rgba(255, 255, 255, 0.08);
       overflow: hidden;
@@ -96,6 +90,54 @@
       border-radius: inherit;
       background: linear-gradient(90deg, var(--emerald) 0%, var(--emerald-soft) 55%, var(--amber) 130%);
       animation: slide 1.4s ease-in-out infinite;
+    }
+    .bar.is-progress {
+      width: 0%;
+      animation: none;
+      transition: width 0.3s ease;
+    }
+    .update-card {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .update-card.visible { display: flex; }
+    .update-version {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--emerald-soft);
+    }
+    .update-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .btn {
+      padding: 8px 20px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--line);
+      transition: background .15s, border-color .15s;
+    }
+    .btn-primary {
+      background: var(--emerald);
+      border-color: var(--emerald);
+      color: #04110c;
+    }
+    .btn-primary:hover { background: var(--emerald-soft); }
+    .btn-secondary {
+      background: transparent;
+      color: var(--muted);
+    }
+    .btn-secondary:hover { border-color: var(--emerald); color: var(--emerald); }
+    .progress-text {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 4px;
     }
     .version {
       position: absolute;
@@ -114,22 +156,141 @@
       50% { opacity: 1; transform: scale(1.05); }
     }
     .logo svg { animation: pulse 2.6s ease-in-out infinite; }
+    .logo svg.updating { animation: none; }
   </style>
 </head>
 <body>
   <main class="splash">
-    <div class="logo">
+    <div class="logo" id="logo">
       <svg width="46" height="46" viewBox="0 0 100 100" aria-hidden="true">
-        <circle cx="50" cy="50" r="30" fill="none" stroke="#10b981" stroke-width="5" />
-        <path d="M50 8 V30 M50 70 V92 M8 50 H30 M70 50 H92" stroke="#10b981" stroke-width="5" stroke-linecap="round" />
-        <circle cx="50" cy="50" r="5" fill="#f59e0b" />
+        <path d="M4 6 L14 6 L26 28 L18 28 Z" fill="#10B981" />
+        <path d="M40 6 L50 6 L32 28 L24 28 Z" fill="#10B981" />
+        <path d="M22 26 L32 26 L32 52 L22 52 Z" fill="#10B981" />
+        <path d="M44 8 L56 8 L60 12 L60 52 L56 56 L44 56 L44 48 L52 48 L54 46 L54 18 L52 16 L44 16 Z" fill="#F8FAFC" />
+        <path d="M32 0 L34.5 4.5 L39 7 L34.5 9.5 L32 14 L29.5 9.5 L25 7 L29.5 4.5 Z" fill="#F59E0B" />
+        <circle cx="32" cy="7" r="1.6" fill="#F8FAFC" />
       </svg>
     </div>
     <div class="mark">YAMA <span>COACH</span></div>
     <div class="tagline">Valorant Coaching</div>
-    <div class="status">Preparando seu ambiente…</div>
-    <div class="track"><div class="bar"></div></div>
-    <div class="version">YAMA COACH · 1.1.0</div>
+    <div class="status" id="status">Verificando atualizações…</div>
+    <div class="track" id="track">
+      <div class="bar" id="bar"></div>
+    </div>
+    <div class="progress-text" id="progress-text"></div>
+    <div class="update-card" id="update-card">
+      <div class="update-version" id="update-version"></div>
+      <div class="update-buttons">
+        <button class="btn btn-primary" id="btn-update">Atualizar agora</button>
+        <button class="btn btn-secondary" id="btn-skip">Agora não</button>
+      </div>
+    </div>
+    <div class="version" id="version">YAMA COACH</div>
   </main>
+
+  <script>
+    // Version from package.json (injected at build time or fallback)
+    const APP_VERSION = '1.2.0';
+
+    // Electron IPC bridge (exposed via preload)
+    const desktop = window.yamaDesktop || {};
+
+    function setStatus(text) {
+      document.getElementById('status').textContent = text;
+    }
+
+    function showUpdateCard(version) {
+      document.getElementById('update-version').textContent = 'Nova versão: ' + version;
+      document.getElementById('update-card').classList.add('visible');
+      document.getElementById('logo').classList.add('updating');
+      document.getElementById('track').style.display = 'none';
+      setStatus('Atualização disponível');
+    }
+
+    function showProgress(percent) {
+      const bar = document.getElementById('bar');
+      const track = document.getElementById('track');
+      track.style.display = 'block';
+      bar.classList.add('is-progress');
+      bar.style.width = percent + '%';
+      document.getElementById('progress-text').textContent = percent + '%';
+      setStatus('Baixando atualização…');
+    }
+
+    function hideProgress() {
+      const bar = document.getElementById('bar');
+      const track = document.getElementById('track');
+      bar.classList.remove('is-progress');
+      bar.style.width = '';
+      track.style.display = 'block';
+      document.getElementById('progress-text').textContent = '';
+    }
+
+    // Listen for update events from main process
+    if (desktop.onUpdateAvailable) {
+      desktop.onUpdateAvailable((info) => {
+        showUpdateCard(info.version);
+      });
+    }
+    if (desktop.onUpdateProgress) {
+      desktop.onUpdateProgress((progress) => {
+        showProgress(Math.round(progress.percent));
+      });
+    }
+    if (desktop.onUpdateDownloaded) {
+      desktop.onUpdateDownloaded(() => {
+        setStatus('Atualização baixada. Reiniciando…');
+        document.getElementById('progress-text').textContent = '100%';
+      });
+    }
+    if (desktop.onUpdateError) {
+      desktop.onUpdateError(() => {
+        hideProgress();
+        setStatus('Preparando seu ambiente…');
+        // Proceed to open app
+        setTimeout(() => { if (desktop.proceed) desktop.proceed(); }, 500);
+      });
+    }
+
+    // Button handlers
+    document.getElementById('btn-update').addEventListener('click', () => {
+      if (desktop.startUpdate) desktop.startUpdate();
+      showProgress(0);
+      document.getElementById('update-card').classList.remove('visible');
+    });
+    document.getElementById('btn-skip').addEventListener('click', () => {
+      document.getElementById('update-card').classList.remove('visible');
+      document.getElementById('logo').classList.remove('updating');
+      document.getElementById('track').style.display = 'block';
+      hideProgress();
+      setStatus('Preparando seu ambiente…');
+      setTimeout(() => { if (desktop.proceed) desktop.proceed(); }, 500);
+    });
+
+    // Initial check
+    setStatus('Verificando atualizações…');
+    if (desktop.checkUpdates) {
+      desktop.checkUpdates().then((result) => {
+        if (result && result.available) {
+          showUpdateCard(result.version);
+        } else {
+          hideProgress();
+          setStatus('Preparando seu ambiente…');
+          setTimeout(() => { if (desktop.proceed) desktop.proceed(); }, 800);
+        }
+      }).catch(() => {
+        hideProgress();
+        setStatus('Preparando seu ambiente…');
+        setTimeout(() => { if (desktop.proceed) desktop.proceed(); }, 500);
+      });
+    } else {
+      // No update API available (dev mode)
+      setTimeout(() => {
+        hideProgress();
+        setStatus('Preparando seu ambiente…');
+        setTimeout(() => { if (desktop.proceed) desktop.proceed(); }, 800);
+      }, 1500);
+    }
+  </script>
 </body>
 </html>

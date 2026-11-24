@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
-const { app, BrowserWindow, shell, dialog, ipcMain } = require("electron");
+const { app, BrowserWindow, shell, ipcMain } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 
@@ -12,32 +12,68 @@ try { autoUpdater = require("electron-updater").autoUpdater; } catch { autoUpdat
 // Auto-updater events
 function setupAutoUpdater() {
   if (!autoUpdater || !app.isPackaged) return;
-  autoUpdater.autoDownload = true;
+  autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.on("update-available", (info) => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send("update-available", info.version);
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.webContents.send("updater:available", { version: info.version });
+    }
+  });
+  autoUpdater.on("download-progress", (progress) => {
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.webContents.send("updater:progress", { percent: progress.percent });
     }
   });
   autoUpdater.on("update-downloaded", (info) => {
-    const choice = dialog.showMessageBoxSync(mainWindow, {
-      type: "info",
-      title: "Atualização disponível",
-      message: `Yama Coach ${info.version} foi baixado.`,
-      detail: "A atualização será instalada ao fechar o aplicativo. Deseja reiniciar agora?",
-      buttons: ["Reiniciar agora", "Depois"],
-      defaultId: 0,
-    });
-    if (choice === 0) autoUpdater.quitAndInstall();
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.webContents.send("updater:downloaded", { version: info.version });
+    }
+    // Auto-install after a short delay
+    setTimeout(() => {
+      autoUpdater.quitAndInstall(true, true);
+    }, 2000);
   });
   autoUpdater.on("error", (err) => {
-    console.error("Auto-updater error:", err);
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.webContents.send("updater:error", { message: err?.message || "Erro" });
+    }
   });
-  // Check for updates after a short delay
-  setTimeout(() => {
-    autoUpdater.checkForUpdatesAndNotify().catch((e) => console.error("Update check failed:", e));
-  }, 5000);
 }
+
+// IPC handlers for splash screen updater
+ipcMain.handle("updater:check", async () => {
+  if (!autoUpdater || !app.isPackaged) return { available: false };
+  try {
+    const result = await autoUpdater.checkForUpdates();
+    if (result && result.updateInfo && result.updateInfo.version) {
+      // Compare versions
+      const currentVersion = app.getVersion();
+      if (result.updateInfo.version !== currentVersion) {
+        return { available: true, version: result.updateInfo.version };
+      }
+    }
+    return { available: false };
+  } catch (e) {
+    return { available: false, error: e?.message || "Erro" };
+  }
+});
+
+ipcMain.on("updater:start", () => {
+  if (!autoUpdater || !app.isPackaged) return;
+  autoUpdater.downloadUpdate().catch((e) => {
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.webContents.send("updater:error", { message: e?.message || "Erro" });
+    }
+  });
+});
+
+ipcMain.on("updater:proceed", () => {
+  closeSplash();
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.show();
+    mainWindow.focus();
+  }
+});
 
 const packagedEnv = path.join(process.resourcesPath || "", "app.env");
 let configuredAppUrl = "";
