@@ -9,6 +9,7 @@ import "./download.css";
 import "./experience.css";
 import "./coach-dashboard.css";
 import "./valorant-polish.css";
+import "./landing-v2.css";
 import { DesktopTitlebar } from "@/components/desktop-titlebar";
 import { ServiceWorkerCleanup } from "@/components/pwa-register";
 
