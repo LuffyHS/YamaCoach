@@ -3,6 +3,21 @@ import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { DESKTOP_COOKIE, DESKTOP_QUERY_PARAM, isDesktopServerSide } from "@/lib/is-desktop";
 
+function createSupabase(request: NextRequest, response: NextResponse) {
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => request.cookies.getAll(),
+        setAll: (cookiesToSet) => {
+          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+        },
+      },
+    }
+  );
+}
+
 export default async function proxy(request: NextRequest) {
   const url = request.nextUrl;
   const isDesktop = isDesktopServerSide(request.headers, request.cookies, url.searchParams);
@@ -13,24 +28,33 @@ export default async function proxy(request: NextRequest) {
     response.cookies.set(DESKTOP_COOKIE, "1", { path: "/", sameSite: "lax" });
   }
 
+  // If Supabase is not configured, skip auth checks.
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    // Root route: desktop never sees the landing page.
+    if (url.pathname === "/" && isDesktop) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    return response;
+  }
+
+  const supabase = createSupabase(request, response);
+  const { data: { user } } = await supabase.auth.getUser();
+
   // Root route: desktop never sees the landing page.
   if (url.pathname === "/" && isDesktop) {
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll: () => request.cookies.getAll(),
-          setAll: (cookiesToSet) => {
-            cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
-          },
-        },
-      }
-    );
-    const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // /login: redirect authenticated users to /dashboard (no redirect loop).
+  if (url.pathname === "/login" && user) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // /dashboard/*: redirect unauthenticated users to /login.
+  if (url.pathname.startsWith("/dashboard") && !user) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 

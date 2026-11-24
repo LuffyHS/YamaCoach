@@ -43,7 +43,8 @@ export function LoginForm({ initialSignup = false }: { initialSignup?: boolean }
             return;
           }
           router.refresh();
-          router.push("/checkout");
+          // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+          window.location.assign("/checkout");
           return;
         }
 
@@ -65,7 +66,7 @@ export function LoginForm({ initialSignup = false }: { initialSignup?: boolean }
           new Date(profile.subscription_expires_at).getTime() > Date.now()
         );
         router.refresh();
-        router.push(active ? "/dashboard" : "/checkout");
+        window.location.assign(active ? "/dashboard" : "/checkout");
         return;
       }
 
@@ -84,7 +85,7 @@ export function LoginForm({ initialSignup = false }: { initialSignup?: boolean }
       if (!response.ok) throw new Error(result.error || "Não foi possível autenticar.");
       if (result.message) setNotice(result.message);
       router.refresh();
-      router.push(result.redirect);
+      window.location.assign(result.redirect);
     } catch (caught) {
       if (caught instanceof TypeError && /fetch/i.test(caught.message)) {
         setError("Não foi possível conectar ao Supabase. Confira sua internet e se o projeto Supabase está ativo e com a URL correta.");
@@ -112,7 +113,7 @@ export function LoginForm({ initialSignup = false }: { initialSignup?: boolean }
         {!signup && <div className="login-password-row"><label className="desktop-remember"><input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> Manter conectado</label><Link className="forgot-link" href="/forgot-password">Esqueci minha senha</Link></div>}
         {error && <div className="recovery-error" role="alert">{error}</div>}
         {notice && <div className="recovery-success" role="status">{notice}</div>}
-        <button className="button primary" disabled={busy} style={{ width: "100%" }}>{busy ? "Aguarde…" : signup ? "Criar conta" : "Entrar"}</button>
+        <button className="button primary" disabled={busy} style={{ width: "100%" }}>{busy ? (signup ? "Criando…" : "Entrando…") : signup ? "Criar conta" : "Entrar"}</button>
       </form>
       <button className="nav-link" onClick={() => { setSignup(!signup); setError(""); setNotice(""); }}>
         {signup ? "Já tenho uma conta" : "Criar conta de aluno"}
