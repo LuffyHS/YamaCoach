@@ -29,5 +29,38 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     );
   }
 
-  return <main className="site login-page"><nav className="topnav"><Link href="/" className="brand login-brand">◉ YAMA<span className="brand-muted">coach</span></Link><div className="login-top-actions"><ThemeToggle compact/><Link href="/" className="nav-link">← Voltar</Link></div></nav><LoginForm initialSignup={params?.mode === "signup"} /></main>;
+  return (
+    <main className="auth-split">
+      <section className="auth-split-left">
+        <div className="auth-split-left-inner">
+          <Link href="/" className="auth-brand">
+            <YamaLogo showWordmark={false} size="md" />
+            <span>YAMA <span className="auth-brand-slash">/</span> COACH</span>
+          </Link>
+          <div className="auth-split-copy">
+            <span className="auth-eyebrow">COACHING COMPETITIVO · VALORANT</span>
+            <h1>Jogue melhor.<br /><em>Com direção.</em></h1>
+            <p>Um plano de evolução construído para o seu jogo: análise de VOD, treinos objetivos e acompanhamento direto do coach.</p>
+            <div className="auth-split-trust">
+              <span>✓ Feedback individual</span>
+              <span>✓ Rotina personalizada</span>
+              <span>✓ Evolução acompanhada</span>
+            </div>
+          </div>
+          <div className="auth-split-footer">
+            <span>© 2026 Yama Coach</span>
+            <Link href="/download" className="auth-split-link">Aplicativo para PC</Link>
+          </div>
+        </div>
+      </section>
+      <section className="auth-split-right">
+        <div className="auth-split-right-inner">
+          <div className="auth-split-topbar">
+            <ThemeToggle compact />
+          </div>
+          <LoginForm initialSignup={params?.mode === "signup"} />
+        </div>
+      </section>
+    </main>
+  );
 }
