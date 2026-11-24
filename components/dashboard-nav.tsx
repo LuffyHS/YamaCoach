@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSyncExternalStore, useState } from "react";
 import { Brain, CalendarDays, Dumbbell, LayoutDashboard, LogOut, Menu, Radio, Settings, User, Users, Video, X } from "lucide-react";
@@ -17,7 +18,7 @@ const workLinks = [
   { href: "/dashboard/diagnostico", label: "Diagnóstico IA", icon: Brain },
 ];
 
-export function DashboardNav({ role, name, rank, pendingVods = 0, pendingPayments = 0 }: { role: Role; name: string; rank?: string | null; pendingVods?: number; pendingPayments?: number }) {
+export function DashboardNav({ role, name, rank, avatarUrl, pendingVods = 0, pendingPayments = 0 }: { role: Role; name: string; rank?: string | null; avatarUrl?: string | null; pendingVods?: number; pendingPayments?: number }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const desktop = useSyncExternalStore(
@@ -37,7 +38,7 @@ export function DashboardNav({ role, name, rank, pendingVods = 0, pendingPayment
       </Link>
 
       <Link href="/dashboard/perfil" className="side-profile" onClick={close}>
-        <span className="avatar">{name.slice(0, 1).toUpperCase()}</span>
+        {avatarUrl ? <Image src={avatarUrl} alt="" width={36} height={36} className="avatar avatar-img" /> : <span className="avatar">{(name || "?").slice(0, 1).toUpperCase()}</span>}
         <span className="side-profile-copy"><b>{name}</b><small>{role === "coach" ? "Coach workspace" : "Player workspace"}{role === "student" && <ValorantRankBadge rank={rank} size="sm" />}</small></span>
         <i className="online-dot" />
       </Link>
