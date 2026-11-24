@@ -7,6 +7,8 @@ import { ValorantAgentAvatar } from "@/components/valorant-agent-avatar";
 import { Film, MousePointer2 } from "lucide-react";
 import Image from "next/image";
 import { AGENTS, MAPS } from "@/lib/ranks";
+import { valorantRankValue, valorantRankProgress } from "@/lib/valorant-ranks";
+import { RANK_TIERS } from "@/lib/ranks";
 
 type StudentOption = Pick<Profile, "id" | "full_name">;
 
@@ -73,8 +75,17 @@ export function VodWorkspace({ role, items, students }: { role: Role; items: Vod
           <h3 className="card-title">Enviar partida</h3>
           <label className="label">Link não listado do YouTube<input name="url" type="url" maxLength={500} className="field" required placeholder="https://youtu.be/..." /></label>
           <label className="label">Mapa<select name="map" className="field" required defaultValue=""><option value="" disabled>Selecione o mapa</option>{MAPS.map(map => <option key={map} value={map}>{map}</option>)}</select></label>
-          <label className="label">Agente<select name="agent" className="field" required value={selectedAgent} onChange={event => setSelectedAgent(event.target.value)}>{AGENTS.map(agent => <option key={agent} value={agent}>{agent}</option>)}</select><span className="vod-agent-selected"><ValorantAgentAvatar name={selectedAgent} size={27} />{selectedAgent}</span></label>
-          <button className="button primary" disabled={busy}>{busy ? "Enviando…" : "Enviar VOD"}</button>
+          <label className="label">Agente<select name="agent" className="field" required value={selectedAgent} onChange={event => setSelectedAgent(event.target.value)}>{AGENTS.map(agent => <option key={agent} value={agent}>{agent}</option>)}</select></label>
+          <div className="crosshair-preview" aria-label="Prévia da partida">
+            <svg viewBox="0 0 100 100" role="img" aria-label="Mira de VALORANT">
+              <g stroke="#10b981" strokeWidth={3} strokeLinecap="square">
+                <path d={`M50 ${50-14} V${50-7}`} /><path d={`M50 ${50+7} V${50+7+14}`} /><path d={`M${50-7-14} 50 H${50-7}`} /><path d={`M${50+7} 50 H${50+7+14}`} />
+              </g><circle cx="50" cy="50" r="1.2" fill="#10b981" />
+            </svg>
+            <span>PRÉVIA DA PARTIDA</span>
+            <span className="preview-map-agent">{selectedAgent}</span>
+          </div>
+          <div className="setup-copy-row"><button type="button" className="button secondary" disabled={busy}>{busy ? "Enviando…" : "Enviar VOD"}</button></div>
         </form>}
       </div>
       <div className="card">
